@@ -1,0 +1,1 @@
+export { AWSLambdaMock } from "./AWSLambdaMock";
