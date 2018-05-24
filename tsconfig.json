@@ -5,7 +5,11 @@
     "moduleResolution": "node",
     "outDir": "dist",
     "removeComments": true,
-    "declaration": true
+    "declaration": true,
+    "lib": [
+      "es5",
+      "es2015"
+    ]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]

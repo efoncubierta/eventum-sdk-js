@@ -1,12 +1,18 @@
-import { AWSLambdaInvokeMock } from "./AWSLambdaInvokeMock";
+// in-memory connectors
+import { InMemoryJournalConnector } from "../../../../src/connector/inmemory/InMemoryJournalConnector";
+
+// model
 import { Event } from "../../../../src/model/Event";
-import { InMemoryJournalStore } from "../../InMemoryJournalStore";
+
+import { AWSLambdaInvokeMock } from "./AWSLambdaInvokeMock";
 
 /**
  * Mock for the 'saveEvents' lambda function.
  */
 export class SaveEventsMock implements AWSLambdaInvokeMock {
   public static FUNCTION_NAME = "saveEvents_test";
+
+  private journalConnector = new InMemoryJournalConnector();
 
   public getFunctionName(): string {
     return SaveEventsMock.FUNCTION_NAME;
@@ -16,13 +22,10 @@ export class SaveEventsMock implements AWSLambdaInvokeMock {
     const jsonPayload = JSON.parse(params.Payload);
     const events: Array<Event<any>> = jsonPayload.events;
 
-    events.forEach((event) => {
-      InMemoryJournalStore.putEvent(event);
-    });
-
-    callback(null, {
-      StatusCode: 200,
-      Payload: {}
+    this.journalConnector.saveEvents(events).then(() => {
+      callback(null, {
+        StatusCode: 200
+      });
     });
   }
 }

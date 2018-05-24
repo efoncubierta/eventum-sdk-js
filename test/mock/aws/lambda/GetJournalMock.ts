@@ -1,13 +1,18 @@
-import { AWSLambdaInvokeMock } from "./AWSLambdaInvokeMock";
-import { InMemorySnapshotStore } from "../../InMemorySnapshotStore";
-import { InMemoryJournalStore } from "../../InMemoryJournalStore";
+// in-memory connectors
+import { InMemoryJournalConnector } from "../../../../src/connector/inmemory/InMemoryJournalConnector";
+
+// model
 import { Journal } from "../../../../src/model/Journal";
+
+import { AWSLambdaInvokeMock } from "./AWSLambdaInvokeMock";
 
 /**
  * Mock for the 'getJournal' lambda function.
  */
 export class GetJournalMock implements AWSLambdaInvokeMock {
   public static FUNCTION_NAME = "getJournal_test";
+
+  private journalConnector = new InMemoryJournalConnector();
 
   public getFunctionName(): string {
     return GetJournalMock.FUNCTION_NAME;
@@ -17,16 +22,11 @@ export class GetJournalMock implements AWSLambdaInvokeMock {
     const jsonPayload = JSON.parse(params.Payload);
     const aggregateId: string = jsonPayload.aggregateId;
 
-    const snapshot = InMemorySnapshotStore.getLatestSnapshot(aggregateId);
-    const events = InMemoryJournalStore.getEvents(aggregateId, snapshot ? snapshot.sequence + 1 : 0);
-
-    callback(null, {
-      StatusCode: 200,
-      Payload: {
-        aggregateId,
-        snapshot,
-        events
-      } as Journal
+    this.journalConnector.getJournal(aggregateId).then((journal) => {
+      callback(null, {
+        StatusCode: 200,
+        Payload: JSON.stringify(journal)
+      });
     });
   }
 }

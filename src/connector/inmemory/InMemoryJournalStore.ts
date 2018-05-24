@@ -1,4 +1,4 @@
-import { Event } from "../../src/model/Event";
+import { Event } from "../../model/Event";
 
 /**
  * Manage journal data in memory.

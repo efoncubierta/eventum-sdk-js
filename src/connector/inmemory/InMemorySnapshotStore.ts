@@ -1,4 +1,4 @@
-import { Snapshot } from "../../src/model/Snapshot";
+import { Snapshot } from "../../model/Snapshot";
 
 /**
  * Manage snapshot data in memory.

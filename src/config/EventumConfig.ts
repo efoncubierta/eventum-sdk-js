@@ -7,7 +7,8 @@ export interface EventumConfig {
 }
 
 export enum EventumProvider {
-  AWS = "AWS"
+  AWS = "AWS",
+  INMEMORY = "INMEMORY"
 }
 
 export interface EventumAWSConfig {

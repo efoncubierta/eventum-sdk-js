@@ -1,10 +1,10 @@
 export { Eventum } from "./Eventum";
 
 // aggregate
-export { Aggregate } from "./Aggregate";
-export { AggregateFSM } from "./AggregateFSM";
-export { AggregateConfig } from "./AggregateConfig";
-export { AggregateError } from "./AggregateError";
+export { Aggregate } from "./aggregate/Aggregate";
+export { AggregateFSM } from "./aggregate/AggregateFSM";
+export { AggregateConfig } from "./aggregate/AggregateConfig";
+export { AggregateError } from "./aggregate/AggregateError";
 
 // model
 export { Command } from "./model/Command";

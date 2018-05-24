@@ -1,12 +1,12 @@
 import * as faker from "faker";
 
-import { GetEntity } from "../example/GetEntity";
-import { CreateEntity } from "../example/CreateEntity";
-import { UpdateEntity } from "../example/UpdateEntity";
-import { DeleteEntity } from "../example/DeleteEntity";
-import { EntityCreated } from "../example/EntityCreated";
-import { EntityUpdated } from "../example/EntityUpdated";
-import { EntityDeleted } from "../example/EntityDeleted";
+import { GetEntity } from "../../examples/entity-aggregate//GetEntity";
+import { CreateEntity } from "../../examples/entity-aggregate//CreateEntity";
+import { UpdateEntity } from "../../examples/entity-aggregate//UpdateEntity";
+import { DeleteEntity } from "../../examples/entity-aggregate//DeleteEntity";
+import { EntityCreated } from "../../examples/entity-aggregate//EntityCreated";
+import { EntityUpdated } from "../../examples/entity-aggregate//EntityUpdated";
+import { EntityDeleted } from "../../examples/entity-aggregate//EntityDeleted";
 import { Command, AggregateConfig } from "../../src";
 
 export class TestDataGenerator {

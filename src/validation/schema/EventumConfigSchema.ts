@@ -17,7 +17,7 @@ export const EventumConfigSchema: Schema = {
 export const EventumConfigProviderSchema: Schema = {
   id: "/Eventum/Config/Provider",
   type: "string",
-  enum: ["AWS"]
+  enum: ["AWS", "INMEMORY"]
 };
 
 export const EventumAWSConfigSchema: Schema = {

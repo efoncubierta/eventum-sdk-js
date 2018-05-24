@@ -21,8 +21,15 @@ export class EntityAggregate extends Aggregate<Entity, EntityCommand, EntityEven
    * @param uuid - Entity UUID
    * @param config - Aggregate configuration
    */
-  constructor(uuid: string, config: AggregateConfig) {
+  protected constructor(uuid: string, config: AggregateConfig) {
     super(uuid, config);
+  }
+
+  public static build(uuid: string, config: AggregateConfig): Promise<EntityAggregate> {
+    const aggregate = new EntityAggregate(uuid, config);
+    return aggregate.rehydrate().then(() => {
+      return aggregate;
+    });
   }
 
   protected getEntity(): Entity {

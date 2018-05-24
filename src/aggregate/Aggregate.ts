@@ -1,13 +1,12 @@
 import { AggregateConfig } from "./AggregateConfig";
-import { Command } from "./model/Command";
-import { JournalConnector } from "./connector/JournalConnector";
-import { Snapshot } from "./model/Snapshot";
-import { Event } from "./model/Event";
-import { ConnectorFactory } from "./connector/ConnectorFactory";
+import { Command } from "../model/Command";
+import { JournalConnector } from "../connector/JournalConnector";
+import { Snapshot } from "../model/Snapshot";
+import { Event } from "../model/Event";
+import { ConnectorFactory } from "../connector/ConnectorFactory";
 
 export interface IAggregate<T, C extends Command> {
   handle(command: C): Promise<T>;
-  rehydrate(): Promise<T>;
 }
 
 export abstract class Aggregate<T, C extends Command, E extends Event<any>> implements IAggregate<T, C> {
@@ -81,9 +80,9 @@ export abstract class Aggregate<T, C extends Command, E extends Event<any>> impl
     }
   }
 
-  public rehydrate(): Promise<T> {
-    // get last sequence number
-    return this.journalConnector.getJournal(this.aggregateId).then((journal) => {
+  protected async rehydrate() {
+    // get journal
+    await this.journalConnector.getJournal(this.aggregateId).then((journal) => {
       // aggregate the snapshot if found
       if (journal.snapshot) {
         this.aggregate(journal.snapshot);
@@ -93,8 +92,6 @@ export abstract class Aggregate<T, C extends Command, E extends Event<any>> impl
       if (journal.events && Array.isArray(journal.events)) {
         journal.events.forEach((event) => this.aggregate(event));
       }
-
-      return this.getEntity();
     });
   }
 

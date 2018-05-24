@@ -63,7 +63,7 @@ export class AWSJournalConnector extends AWSConnector implements JournalConnecto
           throw new Error();
         }
 
-        return value.Payload as Journal;
+        return JSON.parse(value.Payload as string) as Journal;
       });
   }
 

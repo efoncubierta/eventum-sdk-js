@@ -1,11 +1,11 @@
-import { Entity, EntityBuilder } from "./Entity";
-import { GetEntity } from "./GetEntity";
-import { CreateEntity } from "./CreateEntity";
-import { UpdateEntity } from "./UpdateEntity";
-import { DeleteEntity } from "./DeleteEntity";
-import { EntityCreated } from "./EntityCreated";
-import { EntityDeleted } from "./EntityDeleted";
-import { EntityUpdated } from "./EntityUpdated";
+import { Entity, EntityBuilder } from "../entity-aggregate/Entity";
+import { GetEntity } from "../entity-aggregate/GetEntity";
+import { CreateEntity } from "../entity-aggregate/CreateEntity";
+import { UpdateEntity } from "../entity-aggregate/UpdateEntity";
+import { DeleteEntity } from "../entity-aggregate/DeleteEntity";
+import { EntityCreated } from "../entity-aggregate/EntityCreated";
+import { EntityDeleted } from "../entity-aggregate/EntityDeleted";
+import { EntityUpdated } from "../entity-aggregate/EntityUpdated";
 
 import { New, Aggregate, Active, Deleted, AggregateConfig, Snapshot, AggregateError, AggregateFSM } from "../../src";
 
@@ -22,8 +22,15 @@ export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState, Entity
    * @param uuid - Entity UUID
    * @param config - Aggregate configuration
    */
-  constructor(uuid: string, config: AggregateConfig) {
+  protected constructor(uuid: string, config: AggregateConfig) {
     super(uuid, config);
+  }
+
+  public static build(uuid: string, config: AggregateConfig): Promise<EntityAggregateFSM> {
+    const aggregate = new EntityAggregateFSM(uuid, config);
+    return aggregate.rehydrate().then(() => {
+      return aggregate;
+    });
   }
 
   protected getEntity(): EntityState {
