@@ -14,6 +14,7 @@ import { TestDataGenerator } from "./util/TestDataGenerator";
 // example model for testing
 import { EntityAggregate } from "../examples/entity-aggregate/EntityAggregate";
 import { Entity } from "../examples/entity-aggregate/Entity";
+import { ConnectorFactory } from "../src/connector/ConnectorFactory";
 
 const aggregateConfig = TestDataGenerator.getAggregateConfig();
 
@@ -82,7 +83,7 @@ function aggregateTest() {
 
       EntityAggregate.build(aggregateId, aggregateConfig)
         .then((entityAggregate) => {
-          entityAggregate.handle(getEntity).then((entity) => {
+          return entityAggregate.handle(getEntity).then((entity) => {
             chai.should().not.exist(entity);
 
             entityAggregate.handle(deleteEntity).should.be.rejected;
@@ -101,7 +102,7 @@ function aggregateTest() {
 
       EntityAggregate.build(aggregateId, aggregateConfig)
         .then((entityAggregate) => {
-          entityAggregate
+          return entityAggregate
             .handle(createEntity)
             .then((entity) => {
               chai.should().exist(entity);
@@ -136,6 +137,52 @@ function aggregateTest() {
         .catch(done);
     });
 
+    it("should automatically create snapshots", (done) => {
+      const numberUpdates = 10;
+      const aggregateId = TestDataGenerator.randomUUID();
+      const createEntity = TestDataGenerator.randomCreateEntity();
+      const updateEntity = TestDataGenerator.randomUpdateEntity();
+      const getEntity = TestDataGenerator.randomGetEntity();
+
+      EntityAggregate.build(aggregateId, aggregateConfig)
+        .then((entityAggregate) => {
+          return entityAggregate
+            .handle(createEntity)
+            .then((entity) => {
+              chai.should().exist(entity);
+
+              // update entity N times
+              const promises = Array<Promise<Entity>>();
+              for (let i = 0; i < numberUpdates; i++) {
+                promises.push(entityAggregate.handle(updateEntity));
+              }
+
+              return Promise.all(promises);
+            })
+            .then((entities) => {
+              chai.should().exist(entities);
+              entities.length.should.equal(numberUpdates);
+
+              // create new aggregate that should rehydrate
+              return ConnectorFactory.getJournalConnector().getJournal(aggregateId);
+            })
+            .then((journal) => {
+              chai.should().exist(journal);
+              journal.snapshot.should.exist;
+
+              const numberEvents = numberUpdates + 1; // 1 x create + 30 x update
+              const configDelta = aggregateConfig.snapshot.delta;
+              const snapshotDelta = numberEvents % configDelta;
+              const snapshotSequence = numberEvents - snapshotDelta;
+
+              journal.snapshot.sequence.should.equal(snapshotSequence);
+              journal.events.length.should.equal(snapshotDelta);
+            });
+        })
+        .then(done)
+        .catch(done);
+    });
+
     it("should reject a command that is not supported", (done) => {
       const aggregateId = TestDataGenerator.randomUUID();
       const getEntity = TestDataGenerator.randomGetEntity();
@@ -143,7 +190,7 @@ function aggregateTest() {
 
       EntityAggregate.build(aggregateId, aggregateConfig)
         .then((entityAggregate) => {
-          entityAggregate.handle(getEntity).then((entity) => {
+          return entityAggregate.handle(getEntity).then((entity) => {
             entityAggregate.handle(notSupportedCommand).should.be.rejected;
             done();
           });

@@ -13,8 +13,9 @@ import { AWSMock } from "./mock/aws";
 import { TestDataGenerator } from "./util/TestDataGenerator";
 
 // example model for testing
-import { EntityAggregateFSM } from "../examples/entity-aggregatefsm/EntityAggregateFSM";
+import { EntityAggregateFSM, EntityState } from "../examples/entity-aggregatefsm/EntityAggregateFSM";
 import { Entity } from "../examples/entity-aggregate/Entity";
+import { ConnectorFactory } from "../src/connector/ConnectorFactory";
 
 const aggregateConfig = TestDataGenerator.getAggregateConfig();
 
@@ -143,6 +144,53 @@ function aggregateFSMTest() {
               entity.property3.should.be.equal(updateEntity.property3);
 
               return;
+            });
+        })
+        .then(done)
+        .catch(done);
+    });
+
+    it("should automatically create snapshots", (done) => {
+      const numberUpdates = 10;
+      const aggregateId = TestDataGenerator.randomUUID();
+      const createEntity = TestDataGenerator.randomCreateEntity();
+      const updateEntity = TestDataGenerator.randomUpdateEntity();
+      const getEntity = TestDataGenerator.randomGetEntity();
+
+      EntityAggregateFSM.build(aggregateId, aggregateConfig)
+        .then((entityAggregate) => {
+          return entityAggregate
+            .handle(createEntity)
+            .then((entityState) => {
+              entityState.should.exist;
+              entityState.stateName.should.be.equal(Active.STATE_NAME);
+
+              // update entity N times
+              const promises = Array<Promise<EntityState>>();
+              for (let i = 0; i < numberUpdates; i++) {
+                promises.push(entityAggregate.handle(updateEntity));
+              }
+
+              return Promise.all(promises);
+            })
+            .then((entityStates) => {
+              entityStates.should.exist;
+              entityStates.length.should.equal(numberUpdates);
+
+              // create new aggregate that should rehydrate
+              return ConnectorFactory.getJournalConnector().getJournal(aggregateId);
+            })
+            .then((journal) => {
+              chai.should().exist(journal);
+              journal.snapshot.should.exist;
+
+              const numberEvents = numberUpdates + 1; // 1 x create + 30 x update
+              const configDelta = aggregateConfig.snapshot.delta;
+              const snapshotDelta = numberEvents % configDelta;
+              const snapshotSequence = numberEvents - snapshotDelta;
+
+              journal.snapshot.sequence.should.equal(snapshotSequence);
+              journal.events.length.should.equal(snapshotDelta);
             });
         })
         .then(done)

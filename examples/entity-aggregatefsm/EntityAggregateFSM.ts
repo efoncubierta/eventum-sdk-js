@@ -64,10 +64,7 @@ export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState, Entity
           property2: command.property2,
           property3: command.property3
         });
-        return this.save(event).then(() => {
-          this.aggregateEvent(event);
-          return this.getEntity();
-        });
+        return this.save(event);
       default:
         return Promise.reject(new Error(`Entity ${this.aggregateId} already exists.`));
     }
@@ -82,10 +79,7 @@ export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState, Entity
           property3: command.property3
         });
 
-        return this.save(event).then(() => {
-          this.aggregateEvent(event);
-          return this.getEntity();
-        });
+        return this.save(event);
       default:
         return Promise.reject(new Error(`Can't change the email on a non-existent or deleted node.`));
     }
@@ -96,10 +90,7 @@ export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState, Entity
       case Active.STATE_NAME:
         const event = new EntityDeleted(this.aggregateId, this.getNextSequence());
 
-        return this.save(event).then(() => {
-          this.aggregateEvent(event);
-          return this.getEntity();
-        });
+        return this.save(event);
       default:
         return Promise.reject(new Error(`Entity ${this.aggregateId} doesn't exist and cannot be deleted`));
     }

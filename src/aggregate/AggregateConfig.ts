@@ -1,5 +1,5 @@
 export interface AggregateSnapshotConfig {
-  interval: number;
+  delta: number;
 }
 
 export interface AggregateConfig {

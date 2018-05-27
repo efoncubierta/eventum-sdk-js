@@ -72,7 +72,7 @@ export class TestDataGenerator {
   public static getAggregateConfig(): AggregateConfig {
     return {
       snapshot: {
-        interval: 10
+        delta: faker.random.number({ min: 2, max: 5 })
       }
     };
   }

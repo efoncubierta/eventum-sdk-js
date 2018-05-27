@@ -1,5 +1,7 @@
 import { AggregateConfig } from "./AggregateConfig";
 import { Aggregate } from "./Aggregate";
+
+// models
 import { Command } from "../model/Command";
 import { Event } from "../model/Event";
 import { State } from "../model/State";

@@ -1,8 +1,12 @@
 import { AggregateConfig } from "./AggregateConfig";
+
+// models
 import { Command } from "../model/Command";
-import { JournalConnector } from "../connector/JournalConnector";
 import { Snapshot } from "../model/Snapshot";
 import { Event } from "../model/Event";
+
+// connectors
+import { JournalConnector } from "../connector/JournalConnector";
 import { ConnectorFactory } from "../connector/ConnectorFactory";
 
 export interface IAggregate<T, C extends Command> {
@@ -14,11 +18,12 @@ export abstract class Aggregate<T, C extends Command, E extends Event<any>> impl
   protected readonly aggregateId: string;
   protected readonly config: AggregateConfig;
 
-  // stores
+  // connectors
   private readonly journalConnector: JournalConnector;
 
-  // last sequence of events
+  // control variables
   private lastSequence: number = 0;
+  private lastSnapshotSequence: number = 0;
 
   /**
    * Constructor.
@@ -48,35 +53,21 @@ export abstract class Aggregate<T, C extends Command, E extends Event<any>> impl
   }
 
   protected getNextSequence() {
-    return this.lastSequence++;
-  }
-
-  protected onRehydrateStarted() {
-    // nothing
-  }
-
-  protected onRehydrateComplete() {
-    // nothing
-  }
-
-  protected onRehydrateFailed() {
-    // nothing
-  }
-
-  protected onSaveFailure() {
-    // nothing
+    return ++this.lastSequence;
   }
 
   protected aggregate(msg: E | Snapshot<T>) {
     switch (msg.messageType) {
       case Event.MESSAGE_TYPE:
+        this.lastSequence = msg.sequence;
         this.aggregateEvent(msg as E);
         break;
       case Snapshot.MESSAGE_TYPE:
+        this.lastSnapshotSequence = msg.sequence;
         this.aggregateSnapshot(msg as Snapshot<T>);
         break;
       default:
-      // TODO HANDLE ERROR
+        throw new Error(`Only events and snapshots can be aggregagated`);
     }
   }
 
@@ -95,11 +86,41 @@ export abstract class Aggregate<T, C extends Command, E extends Event<any>> impl
     });
   }
 
-  protected save(event: E): Promise<void> {
+  /**
+   * Save an event.
+   *
+   * @param event Event
+   */
+  protected save(event: E): Promise<T> {
     return this.saveAll([event]);
   }
 
-  protected saveAll(events: E[]): Promise<void> {
-    return this.journalConnector.saveEvents(events);
+  /**
+   * Save a list of events.
+   *
+   * @param events List of events
+   */
+  protected saveAll(events: E[]): Promise<T> {
+    return this.journalConnector
+      .saveEvents(events)
+      .then(() => {
+        // aggregate saved events that belongs to this aggregate
+        events.forEach((event) => {
+          if (event.aggregateId === this.aggregateId) {
+            this.aggregate(event);
+          }
+        });
+
+        // save snapshot if the events delta to the last snapshot is higher or equal to
+        // the delta valued configured
+        const delta = this.lastSequence - this.lastSnapshotSequence;
+        if (delta >= this.config.snapshot.delta) {
+          this.lastSnapshotSequence = this.lastSequence;
+          return this.journalConnector.saveSnapshot(this.aggregateId, this.lastSequence, this.getEntity());
+        }
+      })
+      .then(() => {
+        return this.getEntity();
+      });
   }
 }

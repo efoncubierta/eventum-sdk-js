@@ -65,10 +65,8 @@ export class EntityAggregate extends Aggregate<Entity, EntityCommand, EntityEven
       property2: command.property2,
       property3: command.property3
     });
-    return this.save(event).then(() => {
-      this.aggregateEvent(event);
-      return this.getEntity();
-    });
+
+    return this.save(event);
   }
 
   private handleUpdateEntity(command: UpdateEntity): Promise<Entity> {
@@ -82,10 +80,7 @@ export class EntityAggregate extends Aggregate<Entity, EntityCommand, EntityEven
       property3: command.property3
     });
 
-    return this.save(event).then(() => {
-      this.aggregateEvent(event);
-      return this.getEntity();
-    });
+    return this.save(event);
   }
 
   private handleDeleteEntity(command: DeleteEntity): Promise<Entity> {
@@ -94,10 +89,8 @@ export class EntityAggregate extends Aggregate<Entity, EntityCommand, EntityEven
     }
 
     const event = new EntityDeleted(this.aggregateId, this.getNextSequence());
-    return this.save(event).then(() => {
-      this.aggregateEvent(event);
-      return this.getEntity();
-    });
+
+    return this.save(event);
   }
 
   protected aggregateSnapshot(snapshot: Snapshot<Entity>) {
