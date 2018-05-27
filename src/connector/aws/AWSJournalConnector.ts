@@ -11,24 +11,24 @@ import { Event } from "../../model/Event";
  */
 export class AWSJournalConnector extends AWSConnector implements JournalConnector {
   private readonly awsConfig: EventumAWSConfig;
-  private readonly createSnapshotFunctionName: string;
+  private readonly saveSnapshotFunctionName: string;
   private readonly getJournalFunctionName: string;
   private readonly saveEventsFunctionName: string;
 
   constructor() {
     super();
     this.awsConfig = Eventum.config().aws;
-    this.createSnapshotFunctionName = this.awsConfig.lambdas.createSnapshot.functionName;
+    this.saveSnapshotFunctionName = this.awsConfig.lambdas.saveSnapshot.functionName;
     this.getJournalFunctionName = this.awsConfig.lambdas.getJournal.functionName;
     this.saveEventsFunctionName = this.awsConfig.lambdas.saveEvents.functionName;
   }
 
-  public createSnapshot(aggregateId: string, sequence: number, payload: any): Promise<void> {
+  public saveSnapshot(aggregateId: string, sequence: number, payload: any): Promise<void> {
     const lambda = new Lambda();
 
     return lambda
       .invoke({
-        FunctionName: this.createSnapshotFunctionName,
+        FunctionName: this.saveSnapshotFunctionName,
         Payload: JSON.stringify({
           aggregateId,
           sequence,
@@ -37,9 +37,16 @@ export class AWSJournalConnector extends AWSConnector implements JournalConnecto
       })
       .promise()
       .then((value) => {
+        // handle AWS Lambda errors
         if (value.StatusCode !== 200) {
-          // TODO handle error
-          throw new Error();
+          throw new Error(value.Payload as string);
+        }
+
+        const response = JSON.parse(value.Payload as string);
+
+        // handle Eventum errors
+        if (response.$type !== "Success") {
+          throw new Error(response.message);
         }
 
         return null;
@@ -58,12 +65,19 @@ export class AWSJournalConnector extends AWSConnector implements JournalConnecto
       })
       .promise()
       .then((value) => {
+        // handle AWS Lambda errors
         if (value.StatusCode !== 200) {
-          // TODO handle error
-          throw new Error();
+          throw new Error(value.Payload as string);
         }
 
-        return JSON.parse(value.Payload as string) as Journal;
+        const response = JSON.parse(value.Payload as string);
+
+        // handle Eventum errors
+        if (response.$type !== "Success") {
+          throw new Error(response.message);
+        }
+
+        return response.journal as Journal;
       });
   }
 
@@ -78,9 +92,16 @@ export class AWSJournalConnector extends AWSConnector implements JournalConnecto
       })
       .promise()
       .then((value) => {
+        // handle AWS Lambda errors
         if (value.StatusCode !== 200) {
-          // TODO handle error
-          throw new Error();
+          throw new Error(value.Payload as string);
+        }
+
+        const response = JSON.parse(value.Payload as string);
+
+        // handle Eventum errors
+        if (response.$type !== "Success") {
+          throw new Error(response.message);
         }
 
         return null;

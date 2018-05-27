@@ -9,15 +9,15 @@ import { Event } from "../../../../src/model/Event";
 import { AWSLambdaInvokeMock } from "./AWSLambdaInvokeMock";
 
 /**
- * Mock for the 'createSnapshot' lambda function.
+ * Mock for the 'saveSnapshot' lambda function.
  */
-export class CreateSnapshotMock implements AWSLambdaInvokeMock {
-  public static CREATE_SNAPSHOT_FUNCTION_NAME = "createSnapshot_test";
+export class SaveSnapshotMock implements AWSLambdaInvokeMock {
+  public static SAVE_SNAPSHOT_FUNCTION_NAME = "saveSnapshot_test";
 
   private journalConnector = new InMemoryJournalConnector();
 
   public getFunctionName(): string {
-    return CreateSnapshotMock.CREATE_SNAPSHOT_FUNCTION_NAME;
+    return SaveSnapshotMock.SAVE_SNAPSHOT_FUNCTION_NAME;
   }
 
   public handle(params, callback: (error?: Error, response?: any) => void): void {
@@ -27,9 +27,12 @@ export class CreateSnapshotMock implements AWSLambdaInvokeMock {
     const sequence: number = jsonPayload.sequence;
     const payload = jsonPayload.payload;
 
-    this.journalConnector.createSnapshot(aggregateId, sequence, payload).then(() => {
+    this.journalConnector.saveSnapshot(aggregateId, sequence, payload).then(() => {
       callback(null, {
-        StatusCode: 200
+        StatusCode: 200,
+        Payload: JSON.stringify({
+          $type: "Success"
+        })
       });
     });
   }

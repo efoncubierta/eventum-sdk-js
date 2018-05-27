@@ -6,13 +6,13 @@ import { Journal } from "../model/Journal";
  */
 export interface JournalConnector {
   /**
-   * Create a snapshot.
+   * Save a snapshot.
    *
    * @param aggregateId Aggregate ID
    * @param sequence Sequence
    * @param payload Payload
    */
-  createSnapshot(aggregateId: string, sequence: number, payload: any): Promise<void>;
+  saveSnapshot(aggregateId: string, sequence: number, payload: any): Promise<void>;
 
   /**
    * Get an aggregate's journal.

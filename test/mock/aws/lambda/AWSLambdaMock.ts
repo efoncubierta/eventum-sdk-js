@@ -1,7 +1,7 @@
 import * as AWS from "aws-sdk-mock";
 import { Eventum } from "../../../../src/Eventum";
 import { AWSLambdaInvokeMock } from "./AWSLambdaInvokeMock";
-import { CreateSnapshotMock } from "./CreateSnapshotMock";
+import { SaveSnapshotMock } from "./SaveSnapshotMock";
 import { GetJournalMock } from "./GetJournalMock";
 import { SaveEventsMock } from "./SaveEventsMock";
 
@@ -39,7 +39,7 @@ export class AWSLambdaMock {
    * Enable the AWS mockup.
    */
   public static enableMock(): void {
-    AWSLambdaMock.addLambdaInvokeMock(new CreateSnapshotMock());
+    AWSLambdaMock.addLambdaInvokeMock(new SaveSnapshotMock());
     AWSLambdaMock.addLambdaInvokeMock(new GetJournalMock());
     AWSLambdaMock.addLambdaInvokeMock(new SaveEventsMock());
 

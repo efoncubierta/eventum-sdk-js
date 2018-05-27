@@ -16,7 +16,7 @@ export interface EventumAWSConfig {
 }
 
 export interface EventumAWSLambdasConfig {
-  createSnapshot?: EventumAWSLambdaConfig;
+  saveSnapshot?: EventumAWSLambdaConfig;
   getJournal?: EventumAWSLambdaConfig;
   saveEvents?: EventumAWSLambdaConfig;
 }

@@ -35,7 +35,7 @@ export const EventumAWSLambdasConfigSchema: Schema = {
   id: "/Eventum/Config/AWS/Lambdas",
   type: "object",
   properties: {
-    createSnapshot: {
+    saveSnapshot: {
       $ref: "/Eventum/Config/AWS/Lambda"
     },
     getJournal: {
@@ -45,7 +45,7 @@ export const EventumAWSLambdasConfigSchema: Schema = {
       $ref: "/Eventum/Config/AWS/Lambda"
     }
   },
-  required: ["createSnapshot", "getJournal", "saveEvents"]
+  required: ["saveSnapshot", "getJournal", "saveEvents"]
 };
 
 export const EventumAWSLambdaConfigSchema: Schema = {

@@ -2,8 +2,8 @@ provider: AWS
 
 aws:
   lambdas:
-    createSnapshot:
-      functionName: createSnapshot_test
+    saveSnapshot:
+      functionName: saveSnapshot_test
     getJournal:
       functionName: getJournal_test
     saveEvents:

@@ -25,7 +25,10 @@ export class GetJournalMock implements AWSLambdaInvokeMock {
     this.journalConnector.getJournal(aggregateId).then((journal) => {
       callback(null, {
         StatusCode: 200,
-        Payload: JSON.stringify(journal)
+        Payload: JSON.stringify({
+          $type: "Success",
+          journal
+        })
       });
     });
   }

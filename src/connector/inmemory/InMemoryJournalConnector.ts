@@ -14,7 +14,7 @@ import { InMemorySnapshotStore } from "./InMemorySnapshotStore";
  * In-memory Journal connector for testing purposes.
  */
 export class InMemoryJournalConnector extends InMemoryConnector implements JournalConnector {
-  public createSnapshot(aggregateId: string, sequence: number, payload: any): Promise<void> {
+  public saveSnapshot(aggregateId: string, sequence: number, payload: any): Promise<void> {
     const snapshot = new Snapshot(aggregateId, sequence, payload);
     InMemorySnapshotStore.putSnapshot(snapshot);
     return Promise.resolve();

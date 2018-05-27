@@ -24,7 +24,10 @@ export class SaveEventsMock implements AWSLambdaInvokeMock {
 
     this.journalConnector.saveEvents(events).then(() => {
       callback(null, {
-        StatusCode: 200
+        StatusCode: 200,
+        Payload: JSON.stringify({
+          $type: "Success"
+        })
       });
     });
   }
