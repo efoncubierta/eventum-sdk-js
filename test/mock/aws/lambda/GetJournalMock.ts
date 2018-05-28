@@ -1,4 +1,5 @@
 // in-memory connectors
+// in-memory connectors
 import { InMemoryJournalConnector } from "../../../../src/connector/inmemory/InMemoryJournalConnector";
 
 // model
@@ -10,7 +11,7 @@ import { AWSLambdaInvokeMock } from "./AWSLambdaInvokeMock";
  * Mock for the 'getJournal' lambda function.
  */
 export class GetJournalMock implements AWSLambdaInvokeMock {
-  public static FUNCTION_NAME = "getJournal_test";
+  public static FUNCTION_NAME = "eventum-test-getJournal";
 
   private journalConnector = new InMemoryJournalConnector();
 

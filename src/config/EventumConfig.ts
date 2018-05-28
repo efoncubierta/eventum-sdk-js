@@ -1,8 +1,7 @@
-import * as yaml from "js-yaml";
-import * as fs from "fs";
-
 export interface EventumConfig {
   provider?: EventumProvider;
+  serviceName?: string;
+  stage?: string;
   aws?: EventumAWSConfig;
 }
 
@@ -24,3 +23,22 @@ export interface EventumAWSLambdasConfig {
 export interface EventumAWSLambdaConfig {
   functionName: string;
 }
+
+export const EventumConfigDefault: EventumConfig = {
+  provider: EventumProvider.AWS,
+  serviceName: "eventum",
+  stage: "dev",
+  aws: {
+    lambdas: {
+      getJournal: {
+        functionName: "api-getJournal"
+      },
+      saveEvents: {
+        functionName: "api-saveEvents"
+      },
+      saveSnapshot: {
+        functionName: "api-saveSnapshot"
+      }
+    }
+  }
+};

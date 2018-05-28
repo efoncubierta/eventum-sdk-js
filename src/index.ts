@@ -1,5 +1,8 @@
 export { Eventum } from "./Eventum";
 
+// config
+export { EventumConfig, EventumProvider } from "./config/EventumConfig";
+
 // aggregate
 export { Aggregate } from "./aggregate/Aggregate";
 export { AggregateFSM } from "./aggregate/AggregateFSM";

@@ -7,11 +7,17 @@ export const EventumConfigSchema: Schema = {
     provider: {
       $ref: "/Eventum/Config/Provider"
     },
+    serviceName: {
+      type: "string"
+    },
+    stage: {
+      type: "string"
+    },
     aws: {
       $ref: "/Eventum/Config/AWS"
     }
   },
-  required: ["provider", "aws"]
+  required: ["provider", "serviceName", "stage", "aws"]
 };
 
 export const EventumConfigProviderSchema: Schema = {

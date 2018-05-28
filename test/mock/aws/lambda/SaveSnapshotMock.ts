@@ -12,7 +12,7 @@ import { AWSLambdaInvokeMock } from "./AWSLambdaInvokeMock";
  * Mock for the 'saveSnapshot' lambda function.
  */
 export class SaveSnapshotMock implements AWSLambdaInvokeMock {
-  public static SAVE_SNAPSHOT_FUNCTION_NAME = "saveSnapshot_test";
+  public static SAVE_SNAPSHOT_FUNCTION_NAME = "eventum-test-saveSnapshot";
 
   private journalConnector = new InMemoryJournalConnector();
 

@@ -6,6 +6,7 @@ import "mocha";
 
 // eventum-sdk-js dependencies
 import { New, Active, Deleted, AggregateError } from "../src";
+import { ConnectorFactory } from "../src/connector/ConnectorFactory";
 
 // test dependencies
 import { AWSMock } from "./mock/aws";
@@ -14,7 +15,6 @@ import { TestDataGenerator } from "./util/TestDataGenerator";
 // example model for testing
 import { EntityAggregate } from "../examples/entity-aggregate/EntityAggregate";
 import { Entity } from "../examples/entity-aggregate/Entity";
-import { ConnectorFactory } from "../src/connector/ConnectorFactory";
 
 const aggregateConfig = TestDataGenerator.getAggregateConfig();
 

@@ -1,16 +1,23 @@
 import "mocha";
-import * as path from "path";
 
+// eventum dependencies
 import { Eventum } from "../src";
 
 // test dependencies
 import aggregateFSMTest from "./AggregateFSM.test";
 import aggregateTest from "./Aggregate.test";
 
-// configure eventum for testing
-Eventum.setConfigFile(path.join(__dirname, "eventum.yml"));
-
 describe("Eventum SDK", () => {
+  before(() => {
+    Eventum.config({
+      stage: "test"
+    });
+  });
+
+  after(() => {
+    Eventum.resetConfig();
+  });
+
   aggregateTest();
   aggregateFSMTest();
 });

@@ -10,7 +10,7 @@ import { AWSLambdaInvokeMock } from "./AWSLambdaInvokeMock";
  * Mock for the 'saveEvents' lambda function.
  */
 export class SaveEventsMock implements AWSLambdaInvokeMock {
-  public static FUNCTION_NAME = "saveEvents_test";
+  public static FUNCTION_NAME = "eventum-test-saveEvents";
 
   private journalConnector = new InMemoryJournalConnector();
 

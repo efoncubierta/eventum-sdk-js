@@ -1,6 +1,6 @@
 import { Lambda } from "aws-sdk";
 import { Eventum } from "../../Eventum";
-import { EventumAWSLambdaConfig, EventumAWSConfig } from "../../config/EventumConfig";
+import { EventumConfig } from "../../config/EventumConfig";
 import { JournalConnector } from "../JournalConnector";
 import { AWSConnector } from "./AWSConnector";
 import { Journal } from "../../model/Journal";
@@ -10,17 +10,21 @@ import { Event } from "../../model/Event";
  * Journal connector for AWS.
  */
 export class AWSJournalConnector extends AWSConnector implements JournalConnector {
-  private readonly awsConfig: EventumAWSConfig;
+  private readonly config: EventumConfig;
   private readonly saveSnapshotFunctionName: string;
   private readonly getJournalFunctionName: string;
   private readonly saveEventsFunctionName: string;
 
   constructor() {
     super();
-    this.awsConfig = Eventum.config().aws;
-    this.saveSnapshotFunctionName = this.awsConfig.lambdas.saveSnapshot.functionName;
-    this.getJournalFunctionName = this.awsConfig.lambdas.getJournal.functionName;
-    this.saveEventsFunctionName = this.awsConfig.lambdas.saveEvents.functionName;
+    this.config = Eventum.config();
+    this.getJournalFunctionName = this.constructFunctionName(this.config.aws.lambdas.getJournal.functionName);
+    this.saveSnapshotFunctionName = this.constructFunctionName(this.config.aws.lambdas.saveSnapshot.functionName);
+    this.saveEventsFunctionName = this.constructFunctionName(this.config.aws.lambdas.saveEvents.functionName);
+  }
+
+  private constructFunctionName(functionName: string): string {
+    return `${this.config.serviceName}-${this.config.stage}-${functionName}`;
   }
 
   public saveSnapshot(aggregateId: string, sequence: number, payload: any): Promise<void> {
@@ -73,7 +77,7 @@ export class AWSJournalConnector extends AWSConnector implements JournalConnecto
         const response = JSON.parse(value.Payload as string);
 
         // handle Eventum errors
-        if (response.$type !== "Success") {
+        if (response.$type !== "Success" && response.$type !== "NotFound") {
           throw new Error(response.message);
         }
 

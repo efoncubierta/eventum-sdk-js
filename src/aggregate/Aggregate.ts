@@ -74,14 +74,16 @@ export abstract class Aggregate<T, C extends Command, E extends Event<any>> impl
   protected async rehydrate() {
     // get journal
     await this.journalConnector.getJournal(this.aggregateId).then((journal) => {
-      // aggregate the snapshot if found
-      if (journal.snapshot) {
-        this.aggregate(journal.snapshot);
-      }
+      if (journal) {
+        // aggregate the snapshot if found
+        if (journal.snapshot) {
+          this.aggregate(journal.snapshot);
+        }
 
-      // aggregate each event
-      if (journal.events && Array.isArray(journal.events)) {
-        journal.events.forEach((event) => this.aggregate(event));
+        // aggregate each event
+        if (journal.events && Array.isArray(journal.events)) {
+          journal.events.forEach((event) => this.aggregate(event));
+        }
       }
     });
   }
