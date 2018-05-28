@@ -9,6 +9,9 @@ export { AggregateFSM } from "./aggregate/AggregateFSM";
 export { AggregateConfig } from "./aggregate/AggregateConfig";
 export { AggregateError } from "./aggregate/AggregateError";
 
+// materializer
+export { Materializer } from "./materializer/Materializer";
+
 // model
 export { Command } from "./model/Command";
 export { Event } from "./model/Event";
