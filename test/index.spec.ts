@@ -4,8 +4,8 @@ import "mocha";
 import { Eventum } from "../src";
 
 // test dependencies
-import aggregateFSMTest from "./AggregateFSM.test";
-import aggregateTest from "./Aggregate.test";
+import aggregateFSMTests from "./AggregateFSM.test";
+import aggregateTests from "./Aggregate.test";
 
 describe("Eventum SDK", () => {
   before(() => {
@@ -18,6 +18,6 @@ describe("Eventum SDK", () => {
     Eventum.resetConfig();
   });
 
-  aggregateTest();
-  aggregateFSMTest();
+  aggregateTests();
+  aggregateFSMTests();
 });
