@@ -2,15 +2,10 @@ import { AggregateConfig } from "./AggregateConfig";
 import { Aggregate } from "./Aggregate";
 
 // models
-import { Command } from "../model/Command";
 import { Event } from "../model/Event";
 import { State } from "../model/State";
 
-export abstract class AggregateFSM<T, S extends State<T>, C extends Command, E extends Event<any>> extends Aggregate<
-  S,
-  C,
-  E
-> {
+export abstract class AggregateFSM<T, S extends State<T>, E extends Event<any>> extends Aggregate<S, E> {
   /**
    * Constructor.
    *

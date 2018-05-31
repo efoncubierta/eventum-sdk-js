@@ -1,18 +1,19 @@
-import { Entity, EntityBuilder } from "./Entity";
-import { GetEntity } from "./GetEntity";
-import { CreateEntity } from "./CreateEntity";
-import { UpdateEntity } from "./UpdateEntity";
-import { DeleteEntity } from "./DeleteEntity";
+import { Entity } from "./Entity";
 import { EntityCreated } from "./EntityCreated";
 import { EntityDeleted } from "./EntityDeleted";
 import { EntityUpdated } from "./EntityUpdated";
 
-import { New, Aggregate, Active, Deleted, AggregateConfig, Snapshot, AggregateError } from "../../src";
+import { New, Aggregate, Active, Deleted, AggregateConfig, Snapshot } from "../../src";
 
-export type EntityCommand = GetEntity | CreateEntity | UpdateEntity | DeleteEntity;
 export type EntityEvent = EntityCreated | EntityDeleted | EntityUpdated;
 
-export class EntityAggregate extends Aggregate<Entity, EntityCommand, EntityEvent> {
+interface IEntityAggregate {
+  create(property1: string, property2: string, property3: number): Promise<Entity>;
+  update(property1: string, property2: string, property3: number): Promise<Entity>;
+  delete(): Promise<Entity>;
+}
+
+export class EntityAggregate extends Aggregate<Entity, EntityEvent> implements IEntityAggregate {
   private currentEntity: Entity;
 
   /**
@@ -32,63 +33,44 @@ export class EntityAggregate extends Aggregate<Entity, EntityCommand, EntityEven
     });
   }
 
-  protected getEntity(): Entity {
+  public get(): Entity {
     return this.currentEntity;
   }
 
-  public handle(command: EntityCommand): Promise<Entity> {
-    switch (command.commandType) {
-      case GetEntity.COMMAND_TYPE:
-        return this.handleGetEntity(command as GetEntity);
-      case CreateEntity.COMMAND_TYPE:
-        return this.handleCreateEntity(command as CreateEntity);
-      case UpdateEntity.COMMAND_TYPE:
-        return this.handleUpdateEntity(command as UpdateEntity);
-      case DeleteEntity.COMMAND_TYPE:
-        return this.handleDeleteEntity(command as DeleteEntity);
-      default:
-        return Promise.reject(new Error(`Command ${command.commandType} not supported by EntityAggregate.`));
-    }
-  }
-
-  private handleGetEntity(command: GetEntity): Promise<Entity> {
-    return Promise.resolve(this.getEntity());
-  }
-
-  private handleCreateEntity(command: CreateEntity): Promise<Entity> {
+  public create(property1: string, property2: string, property3: number): Promise<Entity> {
     if (this.currentEntity) {
       throw new Error(`Entity ${this.aggregateId} already exists.`);
     }
 
-    const event = new EntityCreated(this.aggregateId, this.getNextSequence(), {
-      property1: command.property1,
-      property2: command.property2,
-      property3: command.property3
+    const event = new EntityCreated(new Date().toISOString(), this.aggregateId, this.getNextSequence(), {
+      property1,
+      property2,
+      property3
     });
 
     return this.save(event);
   }
 
-  private handleUpdateEntity(command: UpdateEntity): Promise<Entity> {
+  public update(property1: string, property2: string, property3: number): Promise<Entity> {
     if (this.currentEntity === null) {
       return Promise.reject(new Error(`Can't update a non-existent or deleted entity.`));
     }
 
-    const event = new EntityUpdated(this.aggregateId, this.getNextSequence(), {
-      property1: command.property1,
-      property2: command.property2,
-      property3: command.property3
+    const event = new EntityUpdated(new Date().toISOString(), this.aggregateId, this.getNextSequence(), {
+      property1,
+      property2,
+      property3
     });
 
     return this.save(event);
   }
 
-  private handleDeleteEntity(command: DeleteEntity): Promise<Entity> {
+  public delete(): Promise<Entity> {
     if (!this.currentEntity) {
       return Promise.reject(new Error(`Entity ${this.aggregateId} doesn't exist and cannot be deleted`));
     }
 
-    const event = new EntityDeleted(this.aggregateId, this.getNextSequence());
+    const event = new EntityDeleted(new Date().toISOString(), this.aggregateId, this.getNextSequence());
 
     return this.save(event);
   }
@@ -114,7 +96,7 @@ export class EntityAggregate extends Aggregate<Entity, EntityCommand, EntityEven
   }
 
   private aggregateEntityCreated(event: EntityCreated) {
-    const entity = new EntityBuilder()
+    const entity = Entity.builder()
       .uuid(event.aggregateId)
       .property1(event.payload.property1)
       .property2(event.payload.property2)
@@ -124,7 +106,7 @@ export class EntityAggregate extends Aggregate<Entity, EntityCommand, EntityEven
   }
 
   private aggregateEntityUpdated(event: EntityUpdated) {
-    const entity = new EntityBuilder(this.currentEntity)
+    const entity = Entity.builder(this.currentEntity)
       .property1(event.payload.property1)
       .property2(event.payload.property2)
       .property3(event.payload.property3)

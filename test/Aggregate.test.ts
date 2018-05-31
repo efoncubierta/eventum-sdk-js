@@ -5,7 +5,7 @@ import * as chaiAsPromised from "chai-as-promised";
 import "mocha";
 
 // eventum-sdk-js dependencies
-import { New, Active, Deleted, AggregateError } from "../src";
+import { New, Active, Deleted } from "../src";
 import { ConnectorFactory } from "../src/connector/ConnectorFactory";
 
 // test dependencies
@@ -34,150 +34,120 @@ function aggregateTests() {
     });
 
     it("should go through the life cycle", () => {
-      const aggregateId = TestDataGenerator.randomUUID();
-      const createEntity = TestDataGenerator.randomCreateEntity();
-      const getEntity = TestDataGenerator.randomGetEntity();
-      const deleteEntity = TestDataGenerator.randomDeleteEntity();
+      const uuid = TestDataGenerator.randomUUID();
+      const entity = TestDataGenerator.randomEntity();
 
-      return EntityAggregate.build(aggregateId, aggregateConfig).then((entityAggregate) => {
+      return EntityAggregate.build(uuid, aggregateConfig).then((entityAggregate) => {
+        const initialEntity = entityAggregate.get();
+        chai.should().not.exist(initialEntity);
+
         return entityAggregate
-          .handle(getEntity)
+          .create(entity.property1, entity.property2, entity.property3)
+          .then((currentEntity) => {
+            chai.should().exist(currentEntity);
+            currentEntity.uuid.should.exist;
+            currentEntity.uuid.should.be.equal(uuid);
+            currentEntity.property1.should.exist;
+            currentEntity.property1.should.be.equal(entity.property1);
+            currentEntity.property2.should.exist;
+            currentEntity.property2.should.be.equal(entity.property2);
+            currentEntity.property3.should.exist;
+            currentEntity.property3.should.be.equal(entity.property3);
 
-          .then((entity) => {
-            chai.should().not.exist(entity);
-
-            return entityAggregate.handle(createEntity);
+            return entityAggregate.delete();
           })
-          .then((entity) => {
-            chai.should().exist(entity);
-            entity.uuid.should.exist;
-            entity.uuid.should.be.equal(aggregateId);
-            entity.property1.should.exist;
-            entity.property1.should.be.equal(createEntity.property1);
-            entity.property2.should.exist;
-            entity.property2.should.be.equal(createEntity.property2);
-            entity.property3.should.exist;
-            entity.property3.should.be.equal(createEntity.property3);
-
-            return entityAggregate.handle(getEntity);
-          })
-          .then((entity) => {
-            chai.should().exist(entity);
-
-            return entityAggregate.handle(deleteEntity);
-          })
-          .then((entity) => {
-            chai.should().not.exist(entity);
+          .then((currentEntity) => {
+            chai.should().not.exist(currentEntity);
             return;
           });
       });
     });
 
-    it("should reject a delete command on a new entity", () => {
-      const aggregateId = TestDataGenerator.randomUUID();
-      const getEntity = TestDataGenerator.randomGetEntity();
-      const deleteEntity = TestDataGenerator.randomDeleteEntity();
+    it("delete() should be rejected on a new entity", () => {
+      const uuid = TestDataGenerator.randomUUID();
 
-      return EntityAggregate.build(aggregateId, aggregateConfig).then((entityAggregate) => {
-        return entityAggregate.handle(getEntity).then((entity) => {
-          chai.should().not.exist(entity);
+      return EntityAggregate.build(uuid, aggregateConfig).then((entityAggregate) => {
+        const initialEntity = entityAggregate.get();
+        chai.should().not.exist(initialEntity);
 
-          return entityAggregate.handle(deleteEntity).should.be.rejected;
-        });
+        return entityAggregate.delete().should.be.rejected;
       });
     });
 
     it("should rehydrate from data store", () => {
-      const aggregateId = TestDataGenerator.randomUUID();
-      const createEntity = TestDataGenerator.randomCreateEntity();
-      const updateEntity = TestDataGenerator.randomUpdateEntity();
-      const getEntity = TestDataGenerator.randomGetEntity();
-      const deleteEntity = TestDataGenerator.randomDeleteEntity();
+      const uuid = TestDataGenerator.randomUUID();
+      const firstEntity = TestDataGenerator.randomEntity(uuid);
+      const secondEntity = TestDataGenerator.randomEntity(uuid);
 
-      return EntityAggregate.build(aggregateId, aggregateConfig).then((entityAggregate) => {
+      return EntityAggregate.build(uuid, aggregateConfig).then((entityAggregate) => {
         return entityAggregate
-          .handle(createEntity)
-          .then((entity) => {
-            chai.should().exist(entity);
+          .create(firstEntity.property1, firstEntity.property2, firstEntity.property3)
+          .then((currentEntity) => {
+            chai.should().exist(currentEntity);
 
-            return entityAggregate.handle(updateEntity);
+            return entityAggregate.update(secondEntity.property1, secondEntity.property2, secondEntity.property3);
           })
-          .then((entity) => {
-            chai.should().exist(entity);
+          .then((currentEntity) => {
+            chai.should().exist(currentEntity);
 
             // create new aggregate that should rehydrate
-            return EntityAggregate.build(aggregateId, aggregateConfig);
+            return EntityAggregate.build(uuid, aggregateConfig);
           })
           .then((entityAggregate2) => {
             chai.should().exist(entityAggregate2);
-            return entityAggregate2.handle(getEntity);
-          })
-          .then((entity) => {
-            chai.should().exist(entity);
-            entity.uuid.should.exist;
-            entity.uuid.should.be.equal(aggregateId);
-            entity.property1.should.exist;
-            entity.property1.should.be.equal(updateEntity.property1);
-            entity.property2.should.exist;
-            entity.property2.should.be.equal(updateEntity.property2);
-            entity.property3.should.exist;
-            entity.property3.should.be.equal(updateEntity.property3);
+
+            const currentEntity = entityAggregate2.get();
+            chai.should().exist(currentEntity);
+            currentEntity.uuid.should.exist;
+            currentEntity.uuid.should.be.equal(uuid);
+            currentEntity.property1.should.exist;
+            currentEntity.property1.should.be.equal(secondEntity.property1);
+            currentEntity.property2.should.exist;
+            currentEntity.property2.should.be.equal(secondEntity.property2);
+            currentEntity.property3.should.exist;
+            currentEntity.property3.should.be.equal(secondEntity.property3);
           });
       });
     });
 
     it("should automatically create snapshots", () => {
-      const numberUpdates = 10;
-      const aggregateId = TestDataGenerator.randomUUID();
-      const createEntity = TestDataGenerator.randomCreateEntity();
-      const updateEntity = TestDataGenerator.randomUpdateEntity();
-      const getEntity = TestDataGenerator.randomGetEntity();
+      const numberOfUpdates = 10;
+      const uuid = TestDataGenerator.randomUUID();
+      const entity = TestDataGenerator.randomEntity();
 
-      return EntityAggregate.build(aggregateId, aggregateConfig).then((entityAggregate) => {
+      return EntityAggregate.build(uuid, aggregateConfig).then((entityAggregate) => {
         return entityAggregate
-          .handle(createEntity)
-          .then((entity) => {
-            chai.should().exist(entity);
+          .create(entity.property1, entity.property2, entity.property3)
+          .then((currentEntity) => {
+            chai.should().exist(currentEntity);
 
             // update entity N times
             const promises = Array<Promise<Entity>>();
-            for (let i = 0; i < numberUpdates; i++) {
-              promises.push(entityAggregate.handle(updateEntity));
+            for (let i = 0; i < numberOfUpdates; i++) {
+              promises.push(entityAggregate.update(entity.property1, entity.property2, entity.property3));
             }
 
             return Promise.all(promises);
           })
           .then((entities) => {
             chai.should().exist(entities);
-            entities.length.should.equal(numberUpdates);
+            entities.length.should.equal(numberOfUpdates);
 
             // create new aggregate that should rehydrate
-            return ConnectorFactory.getJournalConnector().getJournal(aggregateId);
+            return ConnectorFactory.getJournalConnector().getJournal(uuid);
           })
-          .then((journal) => {
-            chai.should().exist(journal);
-            journal.snapshot.should.exist;
+          .then((currentJournal) => {
+            chai.should().exist(currentJournal);
+            currentJournal.snapshot.should.exist;
 
-            const numberEvents = numberUpdates + 1; // 1 x create + 30 x update
+            const numberEvents = numberOfUpdates + 1; // 1 x create + 30 x update
             const configDelta = aggregateConfig.snapshot.delta;
             const snapshotDelta = numberEvents % configDelta;
             const snapshotSequence = numberEvents - snapshotDelta;
 
-            journal.snapshot.sequence.should.equal(snapshotSequence);
-            journal.events.length.should.equal(snapshotDelta);
+            currentJournal.snapshot.sequence.should.equal(snapshotSequence);
+            currentJournal.events.length.should.equal(snapshotDelta);
           });
-      });
-    });
-
-    it("should reject a command that is not supported", () => {
-      const aggregateId = TestDataGenerator.randomUUID();
-      const getEntity = TestDataGenerator.randomGetEntity();
-      const notSupportedCommand = TestDataGenerator.randomNotSupportedCommand();
-
-      return EntityAggregate.build(aggregateId, aggregateConfig).then((entityAggregate) => {
-        return entityAggregate.handle(getEntity).then((entity) => {
-          return entityAggregate.handle(notSupportedCommand).should.be.rejected;
-        });
       });
     });
   });

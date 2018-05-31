@@ -6,7 +6,7 @@ import * as chaiAsPromised from "chai-as-promised";
 import "mocha";
 
 // eventum-sdk-js dependencies
-import { New, Active, Deleted, AggregateError } from "../src";
+import { New, Active, Deleted } from "../src";
 import { ConnectorFactory } from "../src/connector/ConnectorFactory";
 
 // test dependencies
@@ -35,105 +35,89 @@ function aggregateFSMTest() {
     });
 
     it("should go through the life cycle", () => {
-      const aggregateId = TestDataGenerator.randomUUID();
-      const createEntity = TestDataGenerator.randomCreateEntity();
-      const getEntity = TestDataGenerator.randomGetEntity();
-      const deleteEntity = TestDataGenerator.randomDeleteEntity();
+      const uuid = TestDataGenerator.randomUUID();
+      const entity = TestDataGenerator.randomEntity(uuid);
 
-      return EntityAggregateFSM.build(aggregateId, aggregateConfig).then((entityAggregate) => {
+      return EntityAggregateFSM.build(uuid, aggregateConfig).then((entityAggregate) => {
+        const initialState = entityAggregate.get();
+        initialState.should.exist;
+        initialState.stateName.should.be.equal(New.STATE_NAME);
+
         return entityAggregate
-          .handle(getEntity)
-          .then((entityState) => {
-            entityState.should.exist;
-            entityState.stateName.should.be.equal(New.STATE_NAME);
+          .create(entity.property1, entity.property2, entity.property3)
+          .then((currentState) => {
+            currentState.should.exist;
+            currentState.stateName.should.be.equal(Active.STATE_NAME);
 
-            return entityAggregate.handle(createEntity);
+            const currentEntity = (currentState as Active<Entity>).payload;
+            currentEntity.uuid.should.exist;
+            currentEntity.uuid.should.be.equal(uuid);
+            currentEntity.property1.should.exist;
+            currentEntity.property1.should.be.equal(entity.property1);
+            currentEntity.property2.should.exist;
+            currentEntity.property2.should.be.equal(entity.property2);
+            currentEntity.property3.should.exist;
+            currentEntity.property3.should.be.equal(entity.property3);
+
+            return entityAggregate.delete();
           })
-          .then((entityState) => {
-            entityState.should.exist;
-            entityState.stateName.should.be.equal(Active.STATE_NAME);
-
-            const entity = (entityState as Active<Entity>).payload;
-            entity.uuid.should.exist;
-            entity.uuid.should.be.equal(aggregateId);
-            entity.property1.should.exist;
-            entity.property1.should.be.equal(createEntity.property1);
-            entity.property2.should.exist;
-            entity.property2.should.be.equal(createEntity.property2);
-            entity.property3.should.exist;
-            entity.property3.should.be.equal(createEntity.property3);
-
-            return entityAggregate.handle(getEntity);
-          })
-          .then((entityState) => {
-            entityState.should.exist;
-            entityState.stateName.should.be.equal(Active.STATE_NAME);
-
-            return entityAggregate.handle(deleteEntity);
-          })
-          .then((entityState) => {
-            entityState.should.exist;
-            entityState.stateName.should.be.equal(Deleted.STATE_NAME);
+          .then((currentState) => {
+            currentState.should.exist;
+            currentState.stateName.should.be.equal(Deleted.STATE_NAME);
           });
       });
     });
 
-    it("should reject a delete command on a new entity", () => {
-      const aggregateId = TestDataGenerator.randomUUID();
-      const getEntity = TestDataGenerator.randomGetEntity();
-      const deleteEntty = TestDataGenerator.randomDeleteEntity();
+    it("delete() should be rejected on a new entity", () => {
+      const uuid = TestDataGenerator.randomUUID();
 
-      return EntityAggregateFSM.build(aggregateId, aggregateConfig).then((entityAggregate) => {
-        return entityAggregate.handle(getEntity).then((entityState) => {
-          entityState.should.exist;
-          entityState.stateName.should.be.equal(New.STATE_NAME);
+      return EntityAggregateFSM.build(uuid, aggregateConfig).then((entityAggregate) => {
+        const initialState = entityAggregate.get();
+        initialState.should.exist;
+        initialState.stateName.should.be.equal(New.STATE_NAME);
 
-          return entityAggregate.handle(deleteEntty).should.be.rejected;
-        });
+        return entityAggregate.delete().should.be.rejected;
       });
     });
 
     it("should rehydrate from data store", () => {
-      const aggregateId = TestDataGenerator.randomUUID();
-      const createEntity = TestDataGenerator.randomCreateEntity();
-      const updateEntity = TestDataGenerator.randomUpdateEntity();
-      const getEntity = TestDataGenerator.randomGetEntity();
-      const deleteEntity = TestDataGenerator.randomDeleteEntity();
+      const uuid = TestDataGenerator.randomUUID();
+      const firstEntity = TestDataGenerator.randomEntity(uuid);
+      const secondEntity = TestDataGenerator.randomEntity(uuid);
 
-      return EntityAggregateFSM.build(aggregateId, aggregateConfig).then((entityAggregate) => {
+      return EntityAggregateFSM.build(firstEntity.uuid, aggregateConfig).then((entityAggregate) => {
         return entityAggregate
-          .handle(createEntity)
-          .then((entityState) => {
-            entityState.should.exist;
-            entityState.stateName.should.be.equal(Active.STATE_NAME);
+          .create(firstEntity.property1, firstEntity.property2, firstEntity.property3)
+          .then((currentState) => {
+            currentState.should.exist;
+            currentState.stateName.should.be.equal(Active.STATE_NAME);
 
-            return entityAggregate.handle(updateEntity);
+            return entityAggregate.update(secondEntity.property1, secondEntity.property2, secondEntity.property3);
           })
-          .then((entityState) => {
-            entityState.should.exist;
-            entityState.stateName.should.be.equal(Active.STATE_NAME);
+          .then((currentState) => {
+            currentState.should.exist;
+            currentState.stateName.should.be.equal(Active.STATE_NAME);
 
             // create new aggregate that should rehydrate
-            return EntityAggregateFSM.build(aggregateId, aggregateConfig);
+            return EntityAggregateFSM.build(uuid, aggregateConfig);
           })
           .then((entityAggregate2) => {
             entityAggregate2.should.exist;
-            return entityAggregate2.handle(getEntity);
-          })
-          .then((entityState) => {
-            entityState.should.exist;
-            entityState.stateName.should.be.equal(Active.STATE_NAME);
+
+            const currentState = entityAggregate2.get();
+            currentState.should.exist;
+            currentState.stateName.should.be.equal(Active.STATE_NAME);
 
             // validate rehydrated entity
-            const entity = (entityState as Active<Entity>).payload;
-            entity.uuid.should.exist;
-            entity.uuid.should.be.equal(aggregateId);
-            entity.property1.should.exist;
-            entity.property1.should.be.equal(updateEntity.property1);
-            entity.property2.should.exist;
-            entity.property2.should.be.equal(updateEntity.property2);
-            entity.property3.should.exist;
-            entity.property3.should.be.equal(updateEntity.property3);
+            const currentEntity = (currentState as Active<Entity>).payload;
+            currentEntity.uuid.should.exist;
+            currentEntity.uuid.should.be.equal(uuid);
+            currentEntity.property1.should.exist;
+            currentEntity.property1.should.be.equal(secondEntity.property1);
+            currentEntity.property2.should.exist;
+            currentEntity.property2.should.be.equal(secondEntity.property2);
+            currentEntity.property3.should.exist;
+            currentEntity.property3.should.be.equal(secondEntity.property3);
           });
       });
     });
@@ -141,21 +125,23 @@ function aggregateFSMTest() {
     it("should automatically create snapshots", () => {
       const numberUpdates = 10;
       const aggregateId = TestDataGenerator.randomUUID();
-      const createEntity = TestDataGenerator.randomCreateEntity();
-      const updateEntity = TestDataGenerator.randomUpdateEntity();
-      const getEntity = TestDataGenerator.randomGetEntity();
+      const entity = TestDataGenerator.randomEntity();
 
       return EntityAggregateFSM.build(aggregateId, aggregateConfig).then((entityAggregate) => {
+        const initialState = entityAggregate.get();
+        initialState.should.exist;
+        initialState.stateName.should.be.equal(New.STATE_NAME);
+
         return entityAggregate
-          .handle(createEntity)
-          .then((entityState) => {
-            entityState.should.exist;
-            entityState.stateName.should.be.equal(Active.STATE_NAME);
+          .create(entity.property1, entity.property2, entity.property3)
+          .then((currentState) => {
+            currentState.should.exist;
+            currentState.stateName.should.be.equal(Active.STATE_NAME);
 
             // update entity N times
             const promises = Array<Promise<EntityState>>();
             for (let i = 0; i < numberUpdates; i++) {
-              promises.push(entityAggregate.handle(updateEntity));
+              promises.push(entityAggregate.update(entity.property1, entity.property2, entity.property3));
             }
 
             return Promise.all(promises);
@@ -167,30 +153,18 @@ function aggregateFSMTest() {
             // create new aggregate that should rehydrate
             return ConnectorFactory.getJournalConnector().getJournal(aggregateId);
           })
-          .then((journal) => {
-            chai.should().exist(journal);
-            journal.snapshot.should.exist;
+          .then((currentJournal) => {
+            chai.should().exist(currentJournal);
+            currentJournal.snapshot.should.exist;
 
             const numberEvents = numberUpdates + 1; // 1 x create + 30 x update
             const configDelta = aggregateConfig.snapshot.delta;
             const snapshotDelta = numberEvents % configDelta;
             const snapshotSequence = numberEvents - snapshotDelta;
 
-            journal.snapshot.sequence.should.equal(snapshotSequence);
-            journal.events.length.should.equal(snapshotDelta);
+            currentJournal.snapshot.sequence.should.equal(snapshotSequence);
+            currentJournal.events.length.should.equal(snapshotDelta);
           });
-      });
-    });
-
-    it("should reject a command that is not supported", () => {
-      const aggregateId = TestDataGenerator.randomUUID();
-      const getEntity = TestDataGenerator.randomGetEntity();
-      const notSupportedCommand = TestDataGenerator.randomNotSupportedCommand();
-
-      return EntityAggregateFSM.build(aggregateId, aggregateConfig).then((entityAggregate) => {
-        return entityAggregate.handle(getEntity).then((entityState) => {
-          return entityAggregate.handle(notSupportedCommand).should.be.rejected;
-        });
       });
     });
   });

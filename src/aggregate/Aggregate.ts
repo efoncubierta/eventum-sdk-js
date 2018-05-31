@@ -1,7 +1,7 @@
 import { AggregateConfig } from "./AggregateConfig";
 
 // models
-import { Command } from "../model/Command";
+import { Message } from "../model/Message";
 import { Snapshot } from "../model/Snapshot";
 import { Event } from "../model/Event";
 
@@ -9,11 +9,7 @@ import { Event } from "../model/Event";
 import { JournalConnector } from "../connector/JournalConnector";
 import { ConnectorFactory } from "../connector/ConnectorFactory";
 
-export interface IAggregate<T, C extends Command> {
-  handle(command: C): Promise<T>;
-}
-
-export abstract class Aggregate<T, C extends Command, E extends Event<any>> implements IAggregate<T, C> {
+export abstract class Aggregate<T, E extends Event<any>> {
   // aggregate configuration
   protected readonly aggregateId: string;
   protected readonly config: AggregateConfig;
@@ -40,9 +36,7 @@ export abstract class Aggregate<T, C extends Command, E extends Event<any>> impl
     this.journalConnector = ConnectorFactory.getJournalConnector();
   }
 
-  public abstract handle(command: C): Promise<T>;
-
-  protected abstract getEntity(): T;
+  protected abstract get(): T;
 
   protected abstract aggregateEvent(event: E);
 
@@ -56,14 +50,14 @@ export abstract class Aggregate<T, C extends Command, E extends Event<any>> impl
     return ++this.lastSequence;
   }
 
-  protected aggregate(msg: E | Snapshot<T>) {
+  private aggregate(msg: Message) {
     switch (msg.messageType) {
       case Event.MESSAGE_TYPE:
-        this.lastSequence = msg.sequence;
+        this.lastSequence = (msg as Event<any>).sequence;
         this.aggregateEvent(msg as E);
         break;
       case Snapshot.MESSAGE_TYPE:
-        this.lastSnapshotSequence = msg.sequence;
+        this.lastSnapshotSequence = (msg as Snapshot<any>).sequence;
         this.aggregateSnapshot(msg as Snapshot<T>);
         break;
       default:
@@ -118,11 +112,11 @@ export abstract class Aggregate<T, C extends Command, E extends Event<any>> impl
         const delta = this.lastSequence - this.lastSnapshotSequence;
         if (delta >= this.config.snapshot.delta) {
           this.lastSnapshotSequence = this.lastSequence;
-          return this.journalConnector.saveSnapshot(this.aggregateId, this.lastSequence, this.getEntity());
+          return this.journalConnector.saveSnapshot(this.aggregateId, this.lastSequence, this.get());
         }
       })
       .then(() => {
-        return this.getEntity();
+        return this.get();
       });
   }
 }

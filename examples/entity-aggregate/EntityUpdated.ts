@@ -9,7 +9,7 @@ export interface EntityUpdatedPayload {
 export class EntityUpdated extends Event<EntityUpdatedPayload> {
   public static readonly EVENT_TYPE = "EntityUpdated";
 
-  constructor(aggregateId: string, sequence: number, payload: EntityUpdatedPayload) {
-    super(EntityUpdated.EVENT_TYPE, aggregateId, sequence, payload);
+  constructor(occurredAt: string, aggregateId: string, sequence: number, payload: EntityUpdatedPayload) {
+    super(EntityUpdated.EVENT_TYPE, occurredAt, aggregateId, sequence, payload);
   }
 }

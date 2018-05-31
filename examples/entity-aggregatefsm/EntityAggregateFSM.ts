@@ -1,19 +1,20 @@
-import { Entity, EntityBuilder } from "../entity-aggregate/Entity";
-import { GetEntity } from "../entity-aggregate/GetEntity";
-import { CreateEntity } from "../entity-aggregate/CreateEntity";
-import { UpdateEntity } from "../entity-aggregate/UpdateEntity";
-import { DeleteEntity } from "../entity-aggregate/DeleteEntity";
+import { Entity } from "../entity-aggregate/Entity";
 import { EntityCreated } from "../entity-aggregate/EntityCreated";
 import { EntityDeleted } from "../entity-aggregate/EntityDeleted";
 import { EntityUpdated } from "../entity-aggregate/EntityUpdated";
 
-import { New, Aggregate, Active, Deleted, AggregateConfig, Snapshot, AggregateError, AggregateFSM } from "../../src";
+import { New, Aggregate, Active, Deleted, AggregateConfig, Snapshot, AggregateFSM } from "../../src";
 
-export type EntityCommand = GetEntity | CreateEntity | UpdateEntity | DeleteEntity;
 export type EntityEvent = EntityCreated | EntityDeleted | EntityUpdated;
 export type EntityState = New<Entity> | Active<Entity> | Deleted<Entity>;
 
-export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState, EntityCommand, EntityEvent> {
+interface IEntityAggregateFSM {
+  create(property1: string, property2: string, property3: number): Promise<EntityState>;
+  update(property1: string, property2: string, property3: number): Promise<EntityState>;
+  delete(): Promise<EntityState>;
+}
+
+export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState, EntityEvent> implements IEntityAggregateFSM {
   private currentState: EntityState = new New();
 
   /**
@@ -33,36 +34,17 @@ export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState, Entity
     });
   }
 
-  protected getEntity(): EntityState {
+  public get(): EntityState {
     return this.currentState;
   }
 
-  public handle(command: EntityCommand): Promise<EntityState> {
-    switch (command.commandType) {
-      case GetEntity.COMMAND_TYPE:
-        return this.handleGetEntity(command as GetEntity);
-      case CreateEntity.COMMAND_TYPE:
-        return this.handleCreateEntity(command as CreateEntity);
-      case UpdateEntity.COMMAND_TYPE:
-        return this.handleUpdateEntity(command as UpdateEntity);
-      case DeleteEntity.COMMAND_TYPE:
-        return this.handleDeleteEntity(command as DeleteEntity);
-      default:
-        return Promise.reject(new Error(`Command ${command.commandType} not supported by EntityAggregate.`));
-    }
-  }
-
-  private handleGetEntity(command: GetEntity): Promise<EntityState> {
-    return Promise.resolve(this.getEntity());
-  }
-
-  private handleCreateEntity(command: CreateEntity): Promise<EntityState> {
+  public create(property1: string, property2: string, property3: number): Promise<EntityState> {
     switch (this.currentState.stateName) {
       case New.STATE_NAME:
-        const event = new EntityCreated(this.aggregateId, this.getNextSequence(), {
-          property1: command.property1,
-          property2: command.property2,
-          property3: command.property3
+        const event = new EntityCreated(new Date().toISOString(), this.aggregateId, this.getNextSequence(), {
+          property1,
+          property2,
+          property3
         });
         return this.save(event);
       default:
@@ -70,13 +52,13 @@ export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState, Entity
     }
   }
 
-  private handleUpdateEntity(command: UpdateEntity): Promise<EntityState> {
+  public update(property1: string, property2: string, property3: number): Promise<EntityState> {
     switch (this.currentState.stateName) {
       case Active.STATE_NAME:
-        const event = new EntityUpdated(this.aggregateId, this.getNextSequence(), {
-          property1: command.property1,
-          property2: command.property2,
-          property3: command.property3
+        const event = new EntityUpdated(new Date().toISOString(), this.aggregateId, this.getNextSequence(), {
+          property1,
+          property2,
+          property3
         });
 
         return this.save(event);
@@ -85,10 +67,10 @@ export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState, Entity
     }
   }
 
-  private handleDeleteEntity(command: DeleteEntity): Promise<EntityState> {
+  public delete(): Promise<EntityState> {
     switch (this.currentState.stateName) {
       case Active.STATE_NAME:
-        const event = new EntityDeleted(this.aggregateId, this.getNextSequence());
+        const event = new EntityDeleted(new Date().toISOString(), this.aggregateId, this.getNextSequence());
 
         return this.save(event);
       default:
@@ -117,7 +99,7 @@ export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState, Entity
   }
 
   private aggregateEntityCreated(event: EntityCreated) {
-    const entity = new EntityBuilder()
+    const entity = Entity.builder()
       .uuid(event.aggregateId)
       .property1(event.payload.property1)
       .property2(event.payload.property2)
@@ -127,7 +109,7 @@ export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState, Entity
   }
 
   private aggregateEntityUpdated(event: EntityUpdated) {
-    const entity = new EntityBuilder((this.currentState as Active<Entity>).payload)
+    const entity = Entity.builder((this.currentState as Active<Entity>).payload)
       .property1(event.payload.property1)
       .property2(event.payload.property2)
       .property3(event.payload.property3)
