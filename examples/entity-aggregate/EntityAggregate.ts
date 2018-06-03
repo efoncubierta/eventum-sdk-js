@@ -1,11 +1,8 @@
+// Eventum SDK dependencies
+import { Aggregate, AggregateConfig, Snapshot, Event } from "../../src";
+
 import { Entity } from "./Entity";
-import { EntityCreated } from "./EntityCreated";
-import { EntityDeleted } from "./EntityDeleted";
-import { EntityUpdated } from "./EntityUpdated";
-
-import { New, Aggregate, Active, Deleted, AggregateConfig, Snapshot } from "../../src";
-
-export type EntityEvent = EntityCreated | EntityDeleted | EntityUpdated;
+import { EntityEventType } from "./EntityEventType";
 
 interface IEntityAggregate {
   create(property1: string, property2: string, property3: number): Promise<Entity>;
@@ -13,7 +10,7 @@ interface IEntityAggregate {
   delete(): Promise<Entity>;
 }
 
-export class EntityAggregate extends Aggregate<Entity, EntityEvent> implements IEntityAggregate {
+export class EntityAggregate extends Aggregate<Entity> implements IEntityAggregate {
   private currentEntity: Entity;
 
   /**
@@ -42,13 +39,15 @@ export class EntityAggregate extends Aggregate<Entity, EntityEvent> implements I
       throw new Error(`Entity ${this.aggregateId} already exists.`);
     }
 
-    const event = new EntityCreated(new Date().toISOString(), this.aggregateId, this.getNextSequence(), {
-      property1,
-      property2,
-      property3
+    return this.emit({
+      eventType: EntityEventType.EntityCreated,
+      aggregateId: this.aggregateId,
+      payload: {
+        property1,
+        property2,
+        property3
+      }
     });
-
-    return this.save(event);
   }
 
   public update(property1: string, property2: string, property3: number): Promise<Entity> {
@@ -56,13 +55,15 @@ export class EntityAggregate extends Aggregate<Entity, EntityEvent> implements I
       return Promise.reject(new Error(`Can't update a non-existent or deleted entity.`));
     }
 
-    const event = new EntityUpdated(new Date().toISOString(), this.aggregateId, this.getNextSequence(), {
-      property1,
-      property2,
-      property3
+    return this.emit({
+      eventType: EntityEventType.EntityUpdated,
+      aggregateId: this.aggregateId,
+      payload: {
+        property1,
+        property2,
+        property3
+      }
     });
-
-    return this.save(event);
   }
 
   public delete(): Promise<Entity> {
@@ -70,32 +71,33 @@ export class EntityAggregate extends Aggregate<Entity, EntityEvent> implements I
       return Promise.reject(new Error(`Entity ${this.aggregateId} doesn't exist and cannot be deleted`));
     }
 
-    const event = new EntityDeleted(new Date().toISOString(), this.aggregateId, this.getNextSequence());
-
-    return this.save(event);
+    return this.emit({
+      eventType: EntityEventType.EntityDeleted,
+      aggregateId: this.aggregateId
+    });
   }
 
-  protected aggregateSnapshot(snapshot: Snapshot<Entity>) {
+  protected aggregateSnapshot(snapshot: Snapshot) {
     this.currentEntity = snapshot.payload;
   }
 
-  protected aggregateEvent(event: EntityEvent) {
+  protected aggregateEvent(event: Event) {
     switch (event.eventType) {
-      case EntityCreated.EVENT_TYPE:
-        this.aggregateEntityCreated(event as EntityCreated);
+      case EntityEventType.EntityCreated:
+        this.aggregateEntityCreated(event);
         break;
-      case EntityUpdated.EVENT_TYPE:
-        this.aggregateEntityUpdated(event as EntityUpdated);
+      case EntityEventType.EntityUpdated:
+        this.aggregateEntityUpdated(event);
         break;
-      case EntityDeleted.EVENT_TYPE:
-        this.aggregateEntityDeleted(event as EntityDeleted);
+      case EntityEventType.EntityDeleted:
+        this.aggregateEntityDeleted(event);
         break;
       default:
         return Promise.reject(new Error(`Event ${event.eventType} not supported by EntityAggregate.`));
     }
   }
 
-  private aggregateEntityCreated(event: EntityCreated) {
+  private aggregateEntityCreated(event: Event) {
     const entity = Entity.builder()
       .uuid(event.aggregateId)
       .property1(event.payload.property1)
@@ -105,7 +107,7 @@ export class EntityAggregate extends Aggregate<Entity, EntityEvent> implements I
     this.currentEntity = entity;
   }
 
-  private aggregateEntityUpdated(event: EntityUpdated) {
+  private aggregateEntityUpdated(event: Event) {
     const entity = Entity.builder(this.currentEntity)
       .property1(event.payload.property1)
       .property2(event.payload.property2)
@@ -114,7 +116,7 @@ export class EntityAggregate extends Aggregate<Entity, EntityEvent> implements I
     this.currentEntity = entity;
   }
 
-  private aggregateEntityDeleted(event: EntityDeleted) {
+  private aggregateEntityDeleted(event: Event) {
     this.currentEntity = null;
   }
 }

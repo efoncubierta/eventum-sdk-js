@@ -1,9 +1,6 @@
-export class State<P> {
-  public readonly stateName: string;
-  public readonly payload: P;
+import { Nullable } from "../types/Nullable";
 
-  constructor(stateName: string, payload?: P) {
-    this.stateName = stateName;
-    this.payload = payload;
-  }
+export interface State<P> {
+  readonly stateName: string;
+  readonly payload?: Nullable<P>;
 }

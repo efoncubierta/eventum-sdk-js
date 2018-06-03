@@ -5,7 +5,6 @@ import * as chaiAsPromised from "chai-as-promised";
 import "mocha";
 
 // eventum-sdk-js dependencies
-import { New, Active, Deleted } from "../src";
 import { ConnectorFactory } from "../src/connector/ConnectorFactory";
 
 // test dependencies

@@ -1,10 +1,11 @@
 import { Snapshot } from "../../model/Snapshot";
+import { Nullable } from "../../types/Nullable";
 
 /**
  * Manage snapshot data in memory.
  */
 export class InMemorySnapshotStore {
-  private static snapshots: Array<Snapshot<any>> = [];
+  private static snapshots: Snapshot[] = [];
 
   /**
    * Put a snapshot in the in-memory snapshots array. This action replace any existing
@@ -12,7 +13,7 @@ export class InMemorySnapshotStore {
    *
    * @param snapshot Snapshot<any>
    */
-  public static putSnapshot(snapshot: Snapshot<any>): void {
+  public static putSnapshot(snapshot: Snapshot): void {
     this.deleteSnapshot(snapshot.aggregateId, snapshot.sequence);
     this.snapshots.push(snapshot);
   }
@@ -35,7 +36,7 @@ export class InMemorySnapshotStore {
    * @param aggregateId Aggregate ID
    * @param sequence Sequence
    */
-  public static getLatestSnapshot(aggregateId: string): Snapshot<any> {
+  public static getLatestSnapshot(aggregateId: string): Nullable<Snapshot> {
     const snapshots = this.snapshots
       .filter((e) => {
         return e.aggregateId === aggregateId;
@@ -57,7 +58,7 @@ export class InMemorySnapshotStore {
     fromSequence: number = 0,
     toSequence: number = Number.MAX_SAFE_INTEGER,
     reverse: boolean = true
-  ): Array<Snapshot<any>> {
+  ): Snapshot[] {
     const snapshots = this.snapshots
       .filter((snapshot) => {
         return (
@@ -79,7 +80,7 @@ export class InMemorySnapshotStore {
    * @param aggregateId Aggregate ID
    * @param sequence Sequence
    */
-  public static getRollForwardSnapshots(aggregateId: string, sequence: number): Array<Snapshot<any>> {
+  public static getRollForwardSnapshots(aggregateId: string, sequence: number): Snapshot[] {
     return this.snapshots
       .filter((snapshot) => {
         return snapshot.aggregateId === aggregateId && snapshot.sequence <= sequence;

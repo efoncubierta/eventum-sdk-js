@@ -6,7 +6,6 @@ import * as chaiAsPromised from "chai-as-promised";
 import "mocha";
 
 // eventum-sdk-js dependencies
-import { New, Active, Deleted } from "../src";
 import { ConnectorFactory } from "../src/connector/ConnectorFactory";
 
 // test dependencies
@@ -14,8 +13,10 @@ import { AWSMock } from "./mock/aws";
 import { TestDataGenerator } from "./util/TestDataGenerator";
 
 // example model for testing
-import { EntityAggregateFSM, EntityState } from "../examples/entity-aggregatefsm/EntityAggregateFSM";
+import { EntityAggregateFSM } from "../examples/entity-aggregatefsm/EntityAggregateFSM";
 import { Entity } from "../examples/entity-aggregate/Entity";
+import { EntityStateName } from "../examples/entity-aggregatefsm/EntityStateName";
+import { State } from "../src";
 
 const aggregateConfig = TestDataGenerator.getAggregateConfig();
 
@@ -41,15 +42,15 @@ function aggregateFSMTest() {
       return EntityAggregateFSM.build(uuid, aggregateConfig).then((entityAggregate) => {
         const initialState = entityAggregate.get();
         initialState.should.exist;
-        initialState.stateName.should.be.equal(New.STATE_NAME);
+        initialState.stateName.should.be.equal(EntityStateName.New);
 
         return entityAggregate
           .create(entity.property1, entity.property2, entity.property3)
           .then((currentState) => {
             currentState.should.exist;
-            currentState.stateName.should.be.equal(Active.STATE_NAME);
+            currentState.stateName.should.be.equal(EntityStateName.Active);
 
-            const currentEntity = (currentState as Active<Entity>).payload;
+            const currentEntity = currentState.payload;
             currentEntity.uuid.should.exist;
             currentEntity.uuid.should.be.equal(uuid);
             currentEntity.property1.should.exist;
@@ -63,7 +64,7 @@ function aggregateFSMTest() {
           })
           .then((currentState) => {
             currentState.should.exist;
-            currentState.stateName.should.be.equal(Deleted.STATE_NAME);
+            currentState.stateName.should.be.equal(EntityStateName.Deleted);
           });
       });
     });
@@ -74,7 +75,7 @@ function aggregateFSMTest() {
       return EntityAggregateFSM.build(uuid, aggregateConfig).then((entityAggregate) => {
         const initialState = entityAggregate.get();
         initialState.should.exist;
-        initialState.stateName.should.be.equal(New.STATE_NAME);
+        initialState.stateName.should.be.equal(EntityStateName.New);
 
         return entityAggregate.delete().should.be.rejected;
       });
@@ -90,13 +91,13 @@ function aggregateFSMTest() {
           .create(firstEntity.property1, firstEntity.property2, firstEntity.property3)
           .then((currentState) => {
             currentState.should.exist;
-            currentState.stateName.should.be.equal(Active.STATE_NAME);
+            currentState.stateName.should.be.equal(EntityStateName.Active);
 
             return entityAggregate.update(secondEntity.property1, secondEntity.property2, secondEntity.property3);
           })
           .then((currentState) => {
             currentState.should.exist;
-            currentState.stateName.should.be.equal(Active.STATE_NAME);
+            currentState.stateName.should.be.equal(EntityStateName.Active);
 
             // create new aggregate that should rehydrate
             return EntityAggregateFSM.build(uuid, aggregateConfig);
@@ -106,10 +107,10 @@ function aggregateFSMTest() {
 
             const currentState = entityAggregate2.get();
             currentState.should.exist;
-            currentState.stateName.should.be.equal(Active.STATE_NAME);
+            currentState.stateName.should.be.equal(EntityStateName.Active);
 
             // validate rehydrated entity
-            const currentEntity = (currentState as Active<Entity>).payload;
+            const currentEntity = currentState.payload;
             currentEntity.uuid.should.exist;
             currentEntity.uuid.should.be.equal(uuid);
             currentEntity.property1.should.exist;
@@ -130,16 +131,16 @@ function aggregateFSMTest() {
       return EntityAggregateFSM.build(aggregateId, aggregateConfig).then((entityAggregate) => {
         const initialState = entityAggregate.get();
         initialState.should.exist;
-        initialState.stateName.should.be.equal(New.STATE_NAME);
+        initialState.stateName.should.be.equal(EntityStateName.New);
 
         return entityAggregate
           .create(entity.property1, entity.property2, entity.property3)
           .then((currentState) => {
             currentState.should.exist;
-            currentState.stateName.should.be.equal(Active.STATE_NAME);
+            currentState.stateName.should.be.equal(EntityStateName.Active);
 
             // update entity N times
-            const promises = Array<Promise<EntityState>>();
+            const promises = Array<Promise<State<Entity>>>();
             for (let i = 0; i < numberUpdates; i++) {
               promises.push(entityAggregate.update(entity.property1, entity.property2, entity.property3));
             }

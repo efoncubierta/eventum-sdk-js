@@ -1,8 +1,8 @@
 export interface EventumConfig {
-  provider?: EventumProvider;
-  serviceName?: string;
-  stage?: string;
-  aws?: EventumAWSConfig;
+  provider: EventumProvider;
+  serviceName: string;
+  stage: string;
+  aws: EventumAWSConfig;
 }
 
 export enum EventumProvider {
@@ -11,13 +11,13 @@ export enum EventumProvider {
 }
 
 export interface EventumAWSConfig {
-  lambdas?: EventumAWSLambdasConfig;
+  lambdas: EventumAWSLambdasConfig;
 }
 
 export interface EventumAWSLambdasConfig {
-  saveSnapshot?: EventumAWSLambdaConfig;
-  getJournal?: EventumAWSLambdaConfig;
-  saveEvents?: EventumAWSLambdaConfig;
+  saveSnapshot: EventumAWSLambdaConfig;
+  getJournal: EventumAWSLambdaConfig;
+  saveEvents: EventumAWSLambdaConfig;
 }
 
 export interface EventumAWSLambdaConfig {

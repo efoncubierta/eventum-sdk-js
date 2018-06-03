@@ -1,5 +1,8 @@
-import { Event } from "../model/Event";
+// models
+import { Nullable } from "../types/Nullable";
+import { Event, EventInput } from "../model/Event";
 import { Journal } from "../model/Journal";
+import { SnapshotPayload, SnapshotInput } from "../model/Snapshot";
 
 /**
  * A journal connector integrates with Eventum to manage journal data.
@@ -12,19 +15,19 @@ export interface JournalConnector {
    * @param sequence Sequence
    * @param payload Payload
    */
-  saveSnapshot(aggregateId: string, sequence: number, payload: any): Promise<void>;
+  saveSnapshot(snapshot: SnapshotInput): Promise<void>;
 
   /**
    * Get an aggregate's journal.
    *
    * @param aggregateId Aggregate ID
    */
-  getJournal(aggregateId): Promise<Journal>;
+  getJournal(aggregateId: string): Promise<Nullable<Journal>>;
 
   /**
    * Save events.
    *
-   * @param events Events
+   * @param events Event inputs
    */
-  saveEvents(events: Array<Event<any>>): Promise<void>;
+  saveEvents(events: EventInput[]): Promise<Event[]>;
 }

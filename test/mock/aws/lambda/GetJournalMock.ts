@@ -1,4 +1,5 @@
-// in-memory connectors
+import { ResponseType } from "../../../../src/connector/aws/ResponseType";
+
 // in-memory connectors
 import { InMemoryJournalConnector } from "../../../../src/connector/inmemory/InMemoryJournalConnector";
 
@@ -27,8 +28,8 @@ export class GetJournalMock implements AWSLambdaInvokeMock {
       callback(null, {
         StatusCode: 200,
         Payload: JSON.stringify({
-          $type: "Success",
-          journal
+          type: ResponseType.OK,
+          payload: journal
         })
       });
     });

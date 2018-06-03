@@ -1,8 +1,10 @@
+import { ResponseType } from "../../../../src/connector/aws/ResponseType";
+
 // in-memory connectors
 import { InMemoryJournalConnector } from "../../../../src/connector/inmemory/InMemoryJournalConnector";
 
 // model
-import { Snapshot } from "../../../../src/model/Snapshot";
+import { Snapshot, SnapshotInput } from "../../../../src/model/Snapshot";
 import { Journal } from "../../../../src/model/Journal";
 import { Event } from "../../../../src/model/Event";
 
@@ -27,11 +29,17 @@ export class SaveSnapshotMock implements AWSLambdaInvokeMock {
     const sequence: number = jsonPayload.sequence;
     const payload = jsonPayload.payload;
 
-    this.journalConnector.saveSnapshot(aggregateId, sequence, payload).then(() => {
+    const snapshotInput: SnapshotInput = {
+      aggregateId,
+      sequence,
+      payload
+    };
+
+    this.journalConnector.saveSnapshot(snapshotInput).then(() => {
       callback(null, {
         StatusCode: 200,
         Payload: JSON.stringify({
-          $type: "Success"
+          type: ResponseType.OK
         })
       });
     });

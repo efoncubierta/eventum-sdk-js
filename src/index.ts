@@ -13,12 +13,6 @@ export { Materializer } from "./materializer/Materializer";
 
 // model
 export { Event } from "./model/Event";
-export { Message } from "./model/Message";
 export { Journal } from "./model/Journal";
 export { Snapshot } from "./model/Snapshot";
 export { State } from "./model/State";
-
-// states
-export { Active } from "./model/fsm/Active";
-export { Deleted } from "./model/fsm/Deleted";
-export { New } from "./model/fsm/New";

@@ -1,10 +1,11 @@
 import { Event } from "../../model/Event";
+import { Nullable } from "../../types/Nullable";
 
 /**
  * Manage journal data in memory.
  */
-export class InMemoryJournalStore {
-  private static journals: Array<Event<any>> = [];
+export class InMemoryEventStore {
+  private static events: Event[] = [];
 
   /**
    * Put an event in the in-memory journals array. This action replaces any existing
@@ -12,9 +13,9 @@ export class InMemoryJournalStore {
    *
    * @param event Event
    */
-  public static putEvent(event: Event<any>): void {
+  public static putEvent(event: Event): void {
     this.deleteEvent(event.aggregateId, event.sequence);
-    this.journals.push(event);
+    this.events.push(event);
   }
 
   /**
@@ -24,7 +25,7 @@ export class InMemoryJournalStore {
    * @param sequence Sequence
    */
   public static deleteEvent(aggregateId: string, sequence: number): void {
-    this.journals = this.journals.filter((e) => {
+    this.events = this.events.filter((e) => {
       return !(e.aggregateId === aggregateId && e.sequence === sequence);
     });
   }
@@ -36,8 +37,8 @@ export class InMemoryJournalStore {
    * @param sequence Sequence
    * @return Event object or null if it doesn't exist
    */
-  public static getEvent(aggregateId: string, sequence: number): Event<any> {
-    return this.journals.find((event) => {
+  public static getEvent(aggregateId: string, sequence: number): Nullable<Event> {
+    return this.events.find((event) => {
       return event.aggregateId === aggregateId && event.sequence === sequence;
     });
   }
@@ -58,8 +59,8 @@ export class InMemoryJournalStore {
     toSequence: number = Number.MAX_SAFE_INTEGER,
     limit: number = Number.MAX_SAFE_INTEGER,
     reverse: boolean = false
-  ): Array<Event<any>> {
-    const events = this.journals
+  ): Event[] {
+    const events = this.events
       .filter((event) => {
         return event.aggregateId === aggregateId && event.sequence >= fromSequence && event.sequence <= toSequence;
       })

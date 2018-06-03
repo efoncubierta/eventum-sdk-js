@@ -1,10 +1,8 @@
 import * as faker from "faker";
 
 import { Entity } from "../../examples/entity-aggregate/Entity";
-import { EntityCreated } from "../../examples/entity-aggregate/EntityCreated";
-import { EntityUpdated } from "../../examples/entity-aggregate/EntityUpdated";
-import { EntityDeleted } from "../../examples/entity-aggregate/EntityDeleted";
 import { AggregateConfig } from "../../src";
+import { EntityCreatedPayload, EntityUpdatedPayload } from "../../examples/entity-aggregate/EntityEventType";
 
 export class TestDataGenerator {
   public static randomEntity(uuid?: string): Entity {
@@ -16,24 +14,20 @@ export class TestDataGenerator {
     };
   }
 
-  public static randomEntityCreated(sequence?: number): EntityCreated {
-    return new EntityCreated(this.randomDate(), this.randomUUID(), sequence ? sequence : this.randomSequence(), {
+  public static randomEntityCreatedPayload(sequence?: number): EntityCreatedPayload {
+    return {
       property1: faker.lorem.sentence(),
       property2: faker.lorem.sentence(),
       property3: faker.random.number(1000)
-    });
+    };
   }
 
-  public static randomEntityUpdated(sequence?: number): EntityUpdated {
-    return new EntityUpdated(this.randomDate(), this.randomUUID(), sequence ? sequence : this.randomSequence(), {
+  public static randomEntityUpdatedPayload(sequence?: number): EntityUpdatedPayload {
+    return {
       property1: faker.lorem.sentence(),
       property2: faker.lorem.sentence(),
       property3: faker.random.number(1000)
-    });
-  }
-
-  public static randomEntityDeleted(sequence?: number): EntityDeleted {
-    return new EntityDeleted(this.randomDate(), this.randomUUID(), sequence ? sequence : this.randomSequence());
+    };
   }
 
   public static randomSequence(): number {

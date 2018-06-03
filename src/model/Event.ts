@@ -1,4 +1,7 @@
-import { Message } from "./Message";
+import { Nullable } from "../types/Nullable";
+
+export type EventType = string;
+export type EventPayload = any;
 
 /**
  * An event represents a side effect in the system. It indicates that something has changed.
@@ -6,30 +9,14 @@ import { Message } from "./Message";
  *
  * Events are grouped by aggregate and sorted by sequence.
  */
-export class Event<P> extends Message {
-  public static readonly MESSAGE_TYPE = "Event";
-
-  public readonly eventType: string;
-  public readonly occurredAt: string;
-  public readonly aggregateId: string;
-  public readonly sequence: number;
-  public readonly payload: P;
-
-  /**
-   * Constructor.
-   *
-   * @param eventType Event type. Used to classify events by type
-   * @param occurredAt Date and time the event occurred at (ISO8601 format)
-   * @param aggregateId Aggregate ID the event relates to
-   * @param sequence Sequence number that provides order among events
-   * @param payload Payload
-   */
-  constructor(eventType: string, occurredAt: string, aggregateId: string, sequence: number, payload?: P) {
-    super(Event.MESSAGE_TYPE);
-    this.eventType = eventType;
-    this.occurredAt = occurredAt;
-    this.aggregateId = aggregateId;
-    this.sequence = sequence;
-    this.payload = payload;
-  }
+export interface Event {
+  readonly eventType: EventType;
+  readonly aggregateId: string;
+  readonly sequence: number;
+  readonly occurredAt: string;
+  readonly payload?: Nullable<EventPayload>;
 }
+
+export type EventKey = Pick<Event, "aggregateId" | "sequence">;
+
+export type EventInput = Pick<Event, "eventType" | "aggregateId" | "payload">;

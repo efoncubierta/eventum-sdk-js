@@ -1,8 +1,10 @@
+import { ResponseType } from "../../../../src/connector/aws/ResponseType";
+
 // in-memory connectors
 import { InMemoryJournalConnector } from "../../../../src/connector/inmemory/InMemoryJournalConnector";
 
 // model
-import { Event } from "../../../../src/model/Event";
+import { Event, EventInput } from "../../../../src/model/Event";
 
 import { AWSLambdaInvokeMock } from "./AWSLambdaInvokeMock";
 
@@ -20,13 +22,14 @@ export class SaveEventsMock implements AWSLambdaInvokeMock {
 
   public handle(params, callback: (error?: Error, response?: any) => void): void {
     const jsonPayload = JSON.parse(params.Payload);
-    const events: Array<Event<any>> = jsonPayload.events;
+    const eventInputs: EventInput[] = jsonPayload;
 
-    this.journalConnector.saveEvents(events).then(() => {
+    this.journalConnector.saveEvents(eventInputs).then((events) => {
       callback(null, {
         StatusCode: 200,
         Payload: JSON.stringify({
-          $type: "Success"
+          type: ResponseType.OK,
+          payload: events
         })
       });
     });

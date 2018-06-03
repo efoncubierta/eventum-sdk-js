@@ -1,15 +1,14 @@
 import { AggregateConfig } from "./AggregateConfig";
 
 // models
-import { Message } from "../model/Message";
 import { Snapshot } from "../model/Snapshot";
-import { Event } from "../model/Event";
+import { Event, EventInput } from "../model/Event";
 
 // connectors
-import { JournalConnector } from "../connector/JournalConnector";
 import { ConnectorFactory } from "../connector/ConnectorFactory";
+import { JournalConnector } from "../connector/JournalConnector";
 
-export abstract class Aggregate<T, E extends Event<any>> {
+export abstract class Aggregate<T> {
   // aggregate configuration
   protected readonly aggregateId: string;
   protected readonly config: AggregateConfig;
@@ -27,7 +26,7 @@ export abstract class Aggregate<T, E extends Event<any>> {
    * @param aggregateId - Aggregate ID
    * @param config - Aggregate configuration
    */
-  protected constructor(aggregateId: string, config?: AggregateConfig) {
+  protected constructor(aggregateId: string, config: AggregateConfig) {
     this.aggregateId = aggregateId;
     this.config = config;
 
@@ -38,9 +37,9 @@ export abstract class Aggregate<T, E extends Event<any>> {
 
   protected abstract get(): T;
 
-  protected abstract aggregateEvent(event: E);
+  protected abstract aggregateEvent(event: Event): void;
 
-  protected abstract aggregateSnapshot(snapshot: Snapshot<T>);
+  protected abstract aggregateSnapshot(snapshot: Snapshot): void;
 
   protected getLastSequence() {
     return this.lastSequence;
@@ -50,33 +49,28 @@ export abstract class Aggregate<T, E extends Event<any>> {
     return ++this.lastSequence;
   }
 
-  private aggregate(msg: Message) {
-    switch (msg.messageType) {
-      case Event.MESSAGE_TYPE:
-        this.lastSequence = (msg as Event<any>).sequence;
-        this.aggregateEvent(msg as E);
-        break;
-      case Snapshot.MESSAGE_TYPE:
-        this.lastSnapshotSequence = (msg as Snapshot<any>).sequence;
-        this.aggregateSnapshot(msg as Snapshot<T>);
-        break;
-      default:
-        throw new Error(`Only events and snapshots can be aggregagated`);
-    }
+  private aggregateEventInternal(event: Event) {
+    this.lastSequence = event.sequence;
+    this.aggregateEvent(event);
+  }
+
+  private aggregateSnapshotInternal(snapshot: Snapshot) {
+    this.lastSnapshotSequence = snapshot.sequence;
+    this.aggregateSnapshot(snapshot);
   }
 
   protected async rehydrate() {
     // get journal
     await this.journalConnector.getJournal(this.aggregateId).then((journal) => {
       if (journal) {
-        // aggregate the snapshot if found
+        // aggregate the snapshot if any
         if (journal.snapshot) {
-          this.aggregate(journal.snapshot);
+          this.aggregateSnapshotInternal(journal.snapshot);
         }
 
         // aggregate each event
         if (journal.events && Array.isArray(journal.events)) {
-          journal.events.forEach((event) => this.aggregate(event));
+          journal.events.forEach((event) => this.aggregateEventInternal(event));
         }
       }
     });
@@ -85,25 +79,25 @@ export abstract class Aggregate<T, E extends Event<any>> {
   /**
    * Save an event.
    *
-   * @param event Event
+   * @param eventInput Event
    */
-  protected save(event: E): Promise<T> {
-    return this.saveAll([event]);
+  protected emit(eventInput: EventInput): Promise<T> {
+    return this.emitAll([eventInput]);
   }
 
   /**
    * Save a list of events.
    *
-   * @param events List of events
+   * @param eventInputs List of events
    */
-  protected saveAll(events: E[]): Promise<T> {
+  protected emitAll(eventInputs: EventInput[]): Promise<T> {
     return this.journalConnector
-      .saveEvents(events)
-      .then(() => {
+      .saveEvents(eventInputs)
+      .then((events) => {
         // aggregate saved events that belongs to this aggregate
         events.forEach((event) => {
           if (event.aggregateId === this.aggregateId) {
-            this.aggregate(event);
+            this.aggregateEventInternal(event);
           }
         });
 
@@ -112,7 +106,11 @@ export abstract class Aggregate<T, E extends Event<any>> {
         const delta = this.lastSequence - this.lastSnapshotSequence;
         if (delta >= this.config.snapshot.delta) {
           this.lastSnapshotSequence = this.lastSequence;
-          return this.journalConnector.saveSnapshot(this.aggregateId, this.lastSequence, this.get());
+          return this.journalConnector.saveSnapshot({
+            aggregateId: this.aggregateId,
+            sequence: this.lastSequence,
+            payload: this.get()
+          });
         }
       })
       .then(() => {

@@ -6,10 +6,8 @@
     "outDir": "dist",
     "removeComments": true,
     "declaration": true,
-    "lib": [
-      "es5",
-      "es2015"
-    ]
+    "strict": false,
+    "lib": ["es5", "es2015"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]

@@ -1,10 +1,20 @@
+// external dependencies
 import { Lambda } from "aws-sdk";
+
+// configuration
 import { Eventum } from "../../Eventum";
 import { EventumConfig } from "../../config/EventumConfig";
+
+// models
+import { Nullable } from "../../types/Nullable";
+import { Event, EventInput } from "../../model/Event";
+import { Journal } from "../../model/Journal";
+import { SnapshotInput } from "../../model/Snapshot";
+
+// connectors
 import { JournalConnector } from "../JournalConnector";
 import { AWSConnector } from "./AWSConnector";
-import { Journal } from "../../model/Journal";
-import { Event } from "../../model/Event";
+import { ResponseType } from "./ResponseType";
 
 /**
  * Journal connector for AWS.
@@ -27,17 +37,13 @@ export class AWSJournalConnector extends AWSConnector implements JournalConnecto
     return `${this.config.serviceName}-${this.config.stage}-${functionName}`;
   }
 
-  public saveSnapshot(aggregateId: string, sequence: number, payload: any): Promise<void> {
+  public saveSnapshot(snapshot: SnapshotInput): Promise<void> {
     const lambda = new Lambda();
 
     return lambda
       .invoke({
         FunctionName: this.saveSnapshotFunctionName,
-        Payload: JSON.stringify({
-          aggregateId,
-          sequence,
-          payload
-        })
+        Payload: JSON.stringify(snapshot)
       })
       .promise()
       .then((value) => {
@@ -49,15 +55,15 @@ export class AWSJournalConnector extends AWSConnector implements JournalConnecto
         const response = JSON.parse(value.Payload as string);
 
         // handle Eventum errors
-        if (response.$type !== "Success") {
+        if (response.type === ResponseType.ERROR) {
           throw new Error(response.message);
         }
 
-        return null;
+        return;
       });
   }
 
-  public getJournal(aggregateId: any): Promise<Journal> {
+  public getJournal(aggregateId: any): Promise<Nullable<Journal>> {
     const lambda = new Lambda();
 
     return lambda
@@ -77,22 +83,20 @@ export class AWSJournalConnector extends AWSConnector implements JournalConnecto
         const response = JSON.parse(value.Payload as string);
 
         // handle Eventum errors
-        if (response.$type !== "Success" && response.$type !== "NotFound") {
+        if (response.type === ResponseType.ERROR) {
           throw new Error(response.message);
         }
 
-        return response.journal as Journal;
+        return response.payload as Journal;
       });
   }
 
-  public saveEvents(events: Array<Event<any>>): Promise<void> {
+  public saveEvents(events: EventInput[]): Promise<Event[]> {
     const lambda = new Lambda();
     return lambda
       .invoke({
         FunctionName: this.saveEventsFunctionName,
-        Payload: JSON.stringify({
-          events
-        })
+        Payload: JSON.stringify(events)
       })
       .promise()
       .then((value) => {
@@ -104,11 +108,11 @@ export class AWSJournalConnector extends AWSConnector implements JournalConnecto
         const response = JSON.parse(value.Payload as string);
 
         // handle Eventum errors
-        if (response.$type !== "Success") {
+        if (response.type === ResponseType.ERROR) {
           throw new Error(response.message);
         }
 
-        return null;
+        return response.payload as Event[];
       });
   }
 }
