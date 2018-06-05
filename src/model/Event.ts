@@ -1,5 +1,6 @@
-import { Nullable } from "../types/Nullable";
+import { AggregateId, Sequence } from "./Common";
 
+export type EventId = string;
 export type EventType = string;
 export type EventPayload = any;
 
@@ -10,11 +11,12 @@ export type EventPayload = any;
  * Events are grouped by aggregate and sorted by sequence.
  */
 export interface Event {
+  readonly eventId: EventId;
   readonly eventType: EventType;
-  readonly aggregateId: string;
-  readonly sequence: number;
+  readonly aggregateId: AggregateId;
+  readonly sequence: Sequence;
   readonly occurredAt: string;
-  readonly payload?: Nullable<EventPayload>;
+  readonly payload?: EventPayload;
 }
 
 export type EventKey = Pick<Event, "aggregateId" | "sequence">;

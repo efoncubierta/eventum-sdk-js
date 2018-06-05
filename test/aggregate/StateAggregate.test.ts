@@ -6,22 +6,22 @@ import * as chaiAsPromised from "chai-as-promised";
 import "mocha";
 
 // eventum-sdk-js dependencies
-import { ConnectorFactory } from "../src/connector/ConnectorFactory";
+import { ConnectorFactory } from "../../src/connector/ConnectorFactory";
+import { State } from "../../src";
 
 // test dependencies
-import { AWSMock } from "./mock/aws";
-import { TestDataGenerator } from "./util/TestDataGenerator";
+import { AWSMock } from "../mock/aws";
+import { TestDataGenerator } from "../util/TestDataGenerator";
 
 // example model for testing
-import { EntityAggregateFSM } from "../examples/entity-aggregatefsm/EntityAggregateFSM";
-import { Entity } from "../examples/entity-aggregate/Entity";
-import { EntityStateName } from "../examples/entity-aggregatefsm/EntityStateName";
-import { State } from "../src";
+import { EntityStateAggregate } from "../../examples/entitystate-aggregate/EntityStateAggregate";
+import { EntityStateName } from "../../examples/entitystate-aggregate/EntityStateName";
+import { Entity } from "../../examples/entity-aggregate/Entity";
 
 const aggregateConfig = TestDataGenerator.getAggregateConfig();
 
-function aggregateFSMTest() {
-  describe("AggregateFSM", () => {
+function stateAggregateTests() {
+  describe("StateAggregate", () => {
     before(() => {
       chai.should();
       chai.use(chaiAsPromised);
@@ -39,7 +39,7 @@ function aggregateFSMTest() {
       const uuid = TestDataGenerator.randomUUID();
       const entity = TestDataGenerator.randomEntity(uuid);
 
-      return EntityAggregateFSM.build(uuid, aggregateConfig).then((entityAggregate) => {
+      return EntityStateAggregate.build(uuid, aggregateConfig).then((entityAggregate) => {
         const initialState = entityAggregate.get();
         initialState.should.exist;
         initialState.stateName.should.be.equal(EntityStateName.New);
@@ -72,7 +72,7 @@ function aggregateFSMTest() {
     it("delete() should be rejected on a new entity", () => {
       const uuid = TestDataGenerator.randomUUID();
 
-      return EntityAggregateFSM.build(uuid, aggregateConfig).then((entityAggregate) => {
+      return EntityStateAggregate.build(uuid, aggregateConfig).then((entityAggregate) => {
         const initialState = entityAggregate.get();
         initialState.should.exist;
         initialState.stateName.should.be.equal(EntityStateName.New);
@@ -86,7 +86,7 @@ function aggregateFSMTest() {
       const firstEntity = TestDataGenerator.randomEntity(uuid);
       const secondEntity = TestDataGenerator.randomEntity(uuid);
 
-      return EntityAggregateFSM.build(firstEntity.uuid, aggregateConfig).then((entityAggregate) => {
+      return EntityStateAggregate.build(firstEntity.uuid, aggregateConfig).then((entityAggregate) => {
         return entityAggregate
           .create(firstEntity.property1, firstEntity.property2, firstEntity.property3)
           .then((currentState) => {
@@ -100,7 +100,7 @@ function aggregateFSMTest() {
             currentState.stateName.should.be.equal(EntityStateName.Active);
 
             // create new aggregate that should rehydrate
-            return EntityAggregateFSM.build(uuid, aggregateConfig);
+            return EntityStateAggregate.build(uuid, aggregateConfig);
           })
           .then((entityAggregate2) => {
             entityAggregate2.should.exist;
@@ -128,7 +128,7 @@ function aggregateFSMTest() {
       const aggregateId = TestDataGenerator.randomUUID();
       const entity = TestDataGenerator.randomEntity();
 
-      return EntityAggregateFSM.build(aggregateId, aggregateConfig).then((entityAggregate) => {
+      return EntityStateAggregate.build(aggregateId, aggregateConfig).then((entityAggregate) => {
         const initialState = entityAggregate.get();
         initialState.should.exist;
         initialState.stateName.should.be.equal(EntityStateName.New);
@@ -154,21 +154,25 @@ function aggregateFSMTest() {
             // create new aggregate that should rehydrate
             return ConnectorFactory.getJournalConnector().getJournal(aggregateId);
           })
-          .then((currentJournal) => {
-            chai.should().exist(currentJournal);
-            currentJournal.snapshot.should.exist;
+          .then((currentJournalOpt) => {
+            chai.should().exist(currentJournalOpt);
+            currentJournalOpt.isSome().should.be.true;
+
+            const j = currentJournalOpt.getOrElse(undefined);
+            chai.should().exist(j);
+            j.snapshot.should.exist;
 
             const numberEvents = numberUpdates + 1; // 1 x create + 30 x update
             const configDelta = aggregateConfig.snapshot.delta;
             const snapshotDelta = numberEvents % configDelta;
             const snapshotSequence = numberEvents - snapshotDelta;
 
-            currentJournal.snapshot.sequence.should.equal(snapshotSequence);
-            currentJournal.events.length.should.equal(snapshotDelta);
+            j.snapshot.sequence.should.equal(snapshotSequence);
+            j.events.length.should.equal(snapshotDelta);
           });
       });
     });
   });
 }
 
-export default aggregateFSMTest;
+export default stateAggregateTests;

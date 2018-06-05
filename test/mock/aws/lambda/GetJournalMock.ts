@@ -1,11 +1,14 @@
-import { ResponseType } from "../../../../src/connector/aws/ResponseType";
+// Eventum AWS provider dependencies
+import { EventumResponseType } from "../../../../src/connector/EventumResponseType";
+import { EventumErrorType } from "../../../../src/connector/EventumErrorType";
 
-// in-memory connectors
+// Eventum in-memory connectors
 import { InMemoryJournalConnector } from "../../../../src/connector/inmemory/InMemoryJournalConnector";
 
-// model
+// Eventum models
 import { Journal } from "../../../../src/model/Journal";
 
+// Eventum test dependencies
 import { AWSLambdaInvokeMock } from "./AWSLambdaInvokeMock";
 
 /**
@@ -24,14 +27,27 @@ export class GetJournalMock implements AWSLambdaInvokeMock {
     const jsonPayload = JSON.parse(params.Payload);
     const aggregateId: string = jsonPayload.aggregateId;
 
-    this.journalConnector.getJournal(aggregateId).then((journal) => {
-      callback(null, {
-        StatusCode: 200,
-        Payload: JSON.stringify({
-          type: ResponseType.OK,
-          payload: journal
-        })
-      });
+    this.journalConnector.getJournal(aggregateId).then((journalOpt) => {
+      journalOpt.foldL(
+        () => {
+          callback(null, {
+            StatusCode: 200,
+            Payload: JSON.stringify({
+              type: EventumResponseType.ERROR,
+              errorType: EventumErrorType.NotFound
+            })
+          });
+        },
+        (journal) => {
+          callback(null, {
+            StatusCode: 200,
+            Payload: JSON.stringify({
+              type: EventumResponseType.OK,
+              payload: journalOpt.getOrElse(null)
+            })
+          });
+        }
+      );
     });
   }
 }

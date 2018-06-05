@@ -1,20 +1,22 @@
-// external dependencies
+// External dependencies
 import { Lambda } from "aws-sdk";
+import { Option, some, none } from "fp-ts/lib/Option";
 
-// configuration
+// Eventum configuration
 import { Eventum } from "../../Eventum";
 import { EventumConfig } from "../../config/EventumConfig";
 
-// models
-import { Nullable } from "../../types/Nullable";
+// Eventum models
 import { Event, EventInput } from "../../model/Event";
 import { Journal } from "../../model/Journal";
 import { SnapshotInput } from "../../model/Snapshot";
+import { AggregateId } from "../../model/Common";
 
-// connectors
+// Eventum connectors
 import { JournalConnector } from "../JournalConnector";
 import { AWSConnector } from "./AWSConnector";
-import { ResponseType } from "./ResponseType";
+import { EventumResponseType } from "../EventumResponseType";
+import { EventumErrorType } from "../EventumErrorType";
 
 /**
  * Journal connector for AWS.
@@ -37,13 +39,13 @@ export class AWSJournalConnector extends AWSConnector implements JournalConnecto
     return `${this.config.serviceName}-${this.config.stage}-${functionName}`;
   }
 
-  public saveSnapshot(snapshot: SnapshotInput): Promise<void> {
+  public saveSnapshot(snapshotInput: SnapshotInput): Promise<void> {
     const lambda = new Lambda();
 
     return lambda
       .invoke({
         FunctionName: this.saveSnapshotFunctionName,
-        Payload: JSON.stringify(snapshot)
+        Payload: JSON.stringify(snapshotInput)
       })
       .promise()
       .then((value) => {
@@ -54,16 +56,19 @@ export class AWSJournalConnector extends AWSConnector implements JournalConnecto
 
         const response = JSON.parse(value.Payload as string);
 
-        // handle Eventum errors
-        if (response.type === ResponseType.ERROR) {
-          throw new Error(response.message);
+        switch (response.type) {
+          // handle Eventum errors
+          case EventumResponseType.ERROR:
+            throw new Error(response.message);
+          case EventumResponseType.OK:
+            return;
+          default:
+            throw new Error(`Unknown response type ${response.type} from server`);
         }
-
-        return;
       });
   }
 
-  public getJournal(aggregateId: any): Promise<Nullable<Journal>> {
+  public getJournal(aggregateId: AggregateId): Promise<Option<Journal>> {
     const lambda = new Lambda();
 
     return lambda
@@ -82,21 +87,29 @@ export class AWSJournalConnector extends AWSConnector implements JournalConnecto
 
         const response = JSON.parse(value.Payload as string);
 
-        // handle Eventum errors
-        if (response.type === ResponseType.ERROR) {
-          throw new Error(response.message);
+        switch (response.type) {
+          // handle Eventum errors
+          case EventumResponseType.ERROR:
+            switch (response.errorType) {
+              case EventumErrorType.NotFound:
+                return none;
+              default:
+                throw new Error(response.message);
+            }
+          case EventumResponseType.OK:
+            return some(response.payload as Journal);
+          default:
+            throw new Error(`Unknown response type ${response.type} from server`);
         }
-
-        return response.payload as Journal;
       });
   }
 
-  public saveEvents(events: EventInput[]): Promise<Event[]> {
+  public saveEvents(eventInputs: EventInput[]): Promise<Event[]> {
     const lambda = new Lambda();
     return lambda
       .invoke({
         FunctionName: this.saveEventsFunctionName,
-        Payload: JSON.stringify(events)
+        Payload: JSON.stringify(eventInputs)
       })
       .promise()
       .then((value) => {
@@ -107,12 +120,15 @@ export class AWSJournalConnector extends AWSConnector implements JournalConnecto
 
         const response = JSON.parse(value.Payload as string);
 
-        // handle Eventum errors
-        if (response.type === ResponseType.ERROR) {
-          throw new Error(response.message);
+        switch (response.type) {
+          // handle Eventum errors
+          case EventumResponseType.ERROR:
+            throw new Error(response.message);
+          case EventumResponseType.OK:
+            return response.payload as Event[];
+          default:
+            throw new Error(`Unknown response type ${response.type} from server`);
         }
-
-        return response.payload as Event[];
       });
   }
 }

@@ -1,6 +1,6 @@
 import { Snapshot } from "./Snapshot";
 import { Event } from "./Event";
-import { Nullable } from "../types/Nullable";
+import { AggregateId } from "./Common";
 
 /**
  * A journal is the current state of an aggregate in the event store. It is composed by
@@ -8,8 +8,8 @@ import { Nullable } from "../types/Nullable";
  * current state by aggregating the snapshot and events within a journal.
  */
 export interface Journal {
-  readonly aggregateId: string;
-  readonly snapshot: Nullable<Snapshot>;
+  readonly aggregateId: AggregateId;
+  readonly snapshot?: Snapshot;
   readonly events: Event[];
 }
 

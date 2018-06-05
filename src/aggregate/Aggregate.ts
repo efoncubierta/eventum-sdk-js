@@ -61,8 +61,8 @@ export abstract class Aggregate<T> {
 
   protected async rehydrate() {
     // get journal
-    await this.journalConnector.getJournal(this.aggregateId).then((journal) => {
-      if (journal) {
+    await this.journalConnector.getJournal(this.aggregateId).then((journalOpt) => {
+      journalOpt.mapNullable((journal) => {
         // aggregate the snapshot if any
         if (journal.snapshot) {
           this.aggregateSnapshotInternal(journal.snapshot);
@@ -72,7 +72,7 @@ export abstract class Aggregate<T> {
         if (journal.events && Array.isArray(journal.events)) {
           journal.events.forEach((event) => this.aggregateEventInternal(event));
         }
-      }
+      });
     });
   }
 

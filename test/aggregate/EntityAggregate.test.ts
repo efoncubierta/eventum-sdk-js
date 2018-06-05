@@ -5,20 +5,20 @@ import * as chaiAsPromised from "chai-as-promised";
 import "mocha";
 
 // eventum-sdk-js dependencies
-import { ConnectorFactory } from "../src/connector/ConnectorFactory";
+import { ConnectorFactory } from "../../src/connector/ConnectorFactory";
 
 // test dependencies
-import { AWSMock } from "./mock/aws";
-import { TestDataGenerator } from "./util/TestDataGenerator";
+import { AWSMock } from "../mock/aws";
+import { TestDataGenerator } from "../util/TestDataGenerator";
 
 // example model for testing
-import { EntityAggregate } from "../examples/entity-aggregate/EntityAggregate";
-import { Entity } from "../examples/entity-aggregate/Entity";
+import { EntityAggregate } from "../../examples/entity-aggregate/EntityAggregate";
+import { Entity } from "../../examples/entity-aggregate/Entity";
 
 const aggregateConfig = TestDataGenerator.getAggregateConfig();
 
-function aggregateTests() {
-  describe("Aggregate", () => {
+function entityAggregateTests() {
+  describe("EntityAggregate", () => {
     before(() => {
       chai.should();
       chai.use(chaiAsPromised);
@@ -135,21 +135,25 @@ function aggregateTests() {
             // create new aggregate that should rehydrate
             return ConnectorFactory.getJournalConnector().getJournal(uuid);
           })
-          .then((currentJournal) => {
-            chai.should().exist(currentJournal);
-            currentJournal.snapshot.should.exist;
+          .then((currentJournalOpt) => {
+            chai.should().exist(currentJournalOpt);
+            currentJournalOpt.isSome().should.be.true;
+
+            const j = currentJournalOpt.getOrElse(undefined);
+            chai.should().exist(j);
+            j.snapshot.should.exist;
 
             const numberEvents = numberOfUpdates + 1; // 1 x create + 30 x update
             const configDelta = aggregateConfig.snapshot.delta;
             const snapshotDelta = numberEvents % configDelta;
             const snapshotSequence = numberEvents - snapshotDelta;
 
-            currentJournal.snapshot.sequence.should.equal(snapshotSequence);
-            currentJournal.events.length.should.equal(snapshotDelta);
+            j.snapshot.sequence.should.equal(snapshotSequence);
+            j.events.length.should.equal(snapshotDelta);
           });
       });
     });
   });
 }
 
-export default aggregateTests;
+export default entityAggregateTests;

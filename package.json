@@ -17,6 +17,7 @@
   "types": "./dist/index.d.ts",
   "dependencies": {
     "deepmerge": "^2.1.0",
+    "fp-ts": "^1.6.1",
     "jsonschema": "^1.2.4"
   },
   "devDependencies": {

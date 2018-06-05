@@ -1,19 +1,19 @@
 // Eventum SDK dependencies
-import { Aggregate, AggregateConfig, Snapshot, AggregateFSM, Event, State } from "../../src";
+import { Aggregate, AggregateConfig, Snapshot, Event, State } from "../../src";
 
 import { Entity } from "../entity-aggregate/Entity";
-import { EntityEventType } from "../entity-aggregate/EntityEventType";
-import { EntityStateName } from "../entity-aggregatefsm/EntityStateName";
+import { EntityEventType, EntityCreatedPayload, EntityUpdatedPayload } from "../entity-aggregate/EntityEventType";
+import { EntityStateName } from "../entitystate-aggregate/EntityStateName";
 
 type EntityState = State<Entity>;
 
-interface IEntityAggregateFSM {
+interface IEntityStateAggregate {
   create(property1: string, property2: string, property3: number): Promise<EntityState>;
   update(property1: string, property2: string, property3: number): Promise<EntityState>;
   delete(): Promise<EntityState>;
 }
 
-export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState> implements IEntityAggregateFSM {
+export class EntityStateAggregate extends Aggregate<EntityState> implements IEntityStateAggregate {
   private currentState: EntityState = {
     stateName: EntityStateName.New
   };
@@ -28,8 +28,8 @@ export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState> implem
     super(uuid, config);
   }
 
-  public static build(uuid: string, config: AggregateConfig): Promise<EntityAggregateFSM> {
-    const aggregate = new EntityAggregateFSM(uuid, config);
+  public static build(uuid: string, config: AggregateConfig): Promise<EntityStateAggregate> {
+    const aggregate = new EntityStateAggregate(uuid, config);
     return aggregate.rehydrate().then(() => {
       return aggregate;
     });
@@ -42,14 +42,15 @@ export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState> implem
   public create(property1: string, property2: string, property3: number): Promise<EntityState> {
     switch (this.currentState.stateName) {
       case EntityStateName.New:
+        const payload: EntityCreatedPayload = {
+          property1,
+          property2,
+          property3
+        };
         return this.emit({
           eventType: EntityEventType.EntityCreated,
           aggregateId: this.aggregateId,
-          payload: {
-            property1,
-            property2,
-            property3
-          }
+          payload
         });
       default:
         return Promise.reject(new Error(`Entity ${this.aggregateId} already exists.`));
@@ -59,14 +60,15 @@ export class EntityAggregateFSM extends AggregateFSM<Entity, EntityState> implem
   public update(property1: string, property2: string, property3: number): Promise<EntityState> {
     switch (this.currentState.stateName) {
       case EntityStateName.Active:
+        const payload: EntityUpdatedPayload = {
+          property1,
+          property2,
+          property3
+        };
         return this.emit({
           eventType: EntityEventType.EntityUpdated,
           aggregateId: this.aggregateId,
-          payload: {
-            property1,
-            property2,
-            property3
-          }
+          payload
         });
       default:
         return Promise.reject(new Error(`Can't change the email on a non-existent or deleted node.`));

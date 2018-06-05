@@ -1,5 +1,9 @@
-import { Snapshot } from "../../model/Snapshot";
-import { Nullable } from "../../types/Nullable";
+// External dependencies
+import { Option, none, some } from "fp-ts/lib/Option";
+
+// Eventum models
+import { Snapshot, SnapshotKey } from "../../model/Snapshot";
+import { AggregateId, Sequence } from "../../model/Common";
 
 /**
  * Manage snapshot data in memory.
@@ -14,19 +18,21 @@ export class InMemorySnapshotStore {
    * @param snapshot Snapshot<any>
    */
   public static putSnapshot(snapshot: Snapshot): void {
-    this.deleteSnapshot(snapshot.aggregateId, snapshot.sequence);
+    this.deleteSnapshot({
+      aggregateId: snapshot.aggregateId,
+      sequence: snapshot.sequence
+    });
     this.snapshots.push(snapshot);
   }
 
   /**
    * Delete an snapshot from the in-memory snapshots array.
    *
-   * @param aggregateId Aggregate ID
-   * @param sequence Sequence
+   * @param snapshotKey Snapshot key
    */
-  public static deleteSnapshot(aggregateId: string, sequence: number): void {
+  public static deleteSnapshot(snapshotKey: SnapshotKey): void {
     this.snapshots = this.snapshots.filter((e) => {
-      return !(e.aggregateId === aggregateId && e.sequence === sequence);
+      return !(e.aggregateId === snapshotKey.aggregateId && e.sequence === snapshotKey.sequence);
     });
   }
 
@@ -34,29 +40,30 @@ export class InMemorySnapshotStore {
    * Get latest snapshot.
    *
    * @param aggregateId Aggregate ID
-   * @param sequence Sequence
    */
-  public static getLatestSnapshot(aggregateId: string): Nullable<Snapshot> {
+  public static getLatestSnapshot(aggregateId: string): Option<Snapshot> {
     const snapshots = this.snapshots
       .filter((e) => {
         return e.aggregateId === aggregateId;
       })
       .reverse();
 
-    return snapshots.length > 0 ? snapshots[0] : null;
+    return snapshots.length > 0 ? some(snapshots[0]) : none;
   }
 
   /**
    * Get all snapshots for an aggregate sorted by sequence (lower sequence first).
    *
    * @param aggregateId Aggregate ID
+   * @param fromSequence Start sequence number
+   * @param toSequence End sequence number
    * @param reverse Reverse the order (higher sequence first)
    * @return Sequence of snapshots
    */
   public static getSnapshots(
-    aggregateId: string,
-    fromSequence: number = 0,
-    toSequence: number = Number.MAX_SAFE_INTEGER,
+    aggregateId: AggregateId,
+    fromSequence: Sequence = 0,
+    toSequence: Sequence = Number.MAX_SAFE_INTEGER,
     reverse: boolean = true
   ): Snapshot[] {
     const snapshots = this.snapshots

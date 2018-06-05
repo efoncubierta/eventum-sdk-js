@@ -1,5 +1,10 @@
+// External dependencies
 import * as AWS from "aws-sdk-mock";
+
+// Eventum configuration
 import { Eventum } from "../../../../src/Eventum";
+
+// Eventum test dependencies
 import { AWSLambdaInvokeMock } from "./AWSLambdaInvokeMock";
 import { SaveSnapshotMock } from "./SaveSnapshotMock";
 import { GetJournalMock } from "./GetJournalMock";

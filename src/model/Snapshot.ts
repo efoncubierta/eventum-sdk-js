@@ -1,5 +1,6 @@
-import { Nullable } from "../types/Nullable";
+import { AggregateId, Sequence } from "./Common";
 
+export type SnapshotId = string;
 export type SnapshotPayload = any;
 
 /**
@@ -8,8 +9,9 @@ export type SnapshotPayload = any;
  * and resume the rehydration process from it.
  */
 export interface Snapshot {
-  readonly aggregateId: string;
-  readonly sequence: number;
+  readonly snapshotId: SnapshotId;
+  readonly aggregateId: AggregateId;
+  readonly sequence: Sequence;
   readonly payload: SnapshotPayload;
 }
 

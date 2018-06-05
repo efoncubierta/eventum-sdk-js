@@ -1,13 +1,15 @@
-import { ResponseType } from "../../../../src/connector/aws/ResponseType";
+// Eventum AWS provider dependencies
+import { EventumResponseType } from "../../../../src/connector/EventumResponseType";
 
-// in-memory connectors
+// Eventum in-memory connectors
 import { InMemoryJournalConnector } from "../../../../src/connector/inmemory/InMemoryJournalConnector";
 
-// model
+// Eventum models
 import { Snapshot, SnapshotInput } from "../../../../src/model/Snapshot";
 import { Journal } from "../../../../src/model/Journal";
 import { Event } from "../../../../src/model/Event";
 
+// Eventum test dependencies
 import { AWSLambdaInvokeMock } from "./AWSLambdaInvokeMock";
 
 /**
@@ -39,7 +41,7 @@ export class SaveSnapshotMock implements AWSLambdaInvokeMock {
       callback(null, {
         StatusCode: 200,
         Payload: JSON.stringify({
-          type: ResponseType.OK
+          type: EventumResponseType.OK
         })
       });
     });

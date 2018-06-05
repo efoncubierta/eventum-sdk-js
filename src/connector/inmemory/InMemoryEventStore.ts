@@ -1,5 +1,9 @@
-import { Event } from "../../model/Event";
-import { Nullable } from "../../types/Nullable";
+// External dependencies
+import { Option, none, some } from "fp-ts/lib/Option";
+
+// Eventum models
+import { Event, EventKey } from "../../model/Event";
+import { AggregateId, Sequence } from "../../model/Common";
 
 /**
  * Manage journal data in memory.
@@ -14,33 +18,37 @@ export class InMemoryEventStore {
    * @param event Event
    */
   public static putEvent(event: Event): void {
-    this.deleteEvent(event.aggregateId, event.sequence);
+    this.deleteEvent({
+      aggregateId: event.aggregateId,
+      sequence: event.sequence
+    });
     this.events.push(event);
   }
 
   /**
    * Delete an event from the in-memory journals array.
    *
-   * @param aggregateId Aggregate ID
-   * @param sequence Sequence
+   * @param eventKey Event Key
    */
-  public static deleteEvent(aggregateId: string, sequence: number): void {
+  public static deleteEvent(eventKey: EventKey): void {
     this.events = this.events.filter((e) => {
-      return !(e.aggregateId === aggregateId && e.sequence === sequence);
+      return !(e.aggregateId === eventKey.aggregateId && e.sequence === eventKey.sequence);
     });
   }
 
   /**
    * Get an event from the in-memory journals array.
    *
-   * @param aggregateId Aggregate ID
-   * @param sequence Sequence
+   * @param eventKey Event key
+   *
    * @return Event object or null if it doesn't exist
    */
-  public static getEvent(aggregateId: string, sequence: number): Nullable<Event> {
-    return this.events.find((event) => {
-      return event.aggregateId === aggregateId && event.sequence === sequence;
+  public static getEvent(eventKey: EventKey): Option<Event> {
+    const e = this.events.find((event) => {
+      return event.aggregateId === eventKey.aggregateId && event.sequence === eventKey.sequence;
     });
+
+    return e ? some(e) : none;
   }
 
   /**
@@ -54,9 +62,9 @@ export class InMemoryEventStore {
    * @returns Sequence of events sorted in ascending order by sequence or empty array if none are found
    */
   public static getEvents(
-    aggregateId: string,
-    fromSequence: number = 0,
-    toSequence: number = Number.MAX_SAFE_INTEGER,
+    aggregateId: AggregateId,
+    fromSequence: Sequence = 0,
+    toSequence: Sequence = Number.MAX_SAFE_INTEGER,
     limit: number = Number.MAX_SAFE_INTEGER,
     reverse: boolean = false
   ): Event[] {

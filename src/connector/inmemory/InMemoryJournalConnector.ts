@@ -1,39 +1,54 @@
-import { InMemoryConnector } from "./InMemoryConnector";
-import { JournalConnector } from "../JournalConnector";
+// External dependencies
+import { Option, some, none } from "fp-ts/lib/Option";
+import * as UUID from "uuid";
 
-// import model
-import { Nullable } from "../../types/Nullable";
+// Eventum models
 import { Journal } from "../../model/Journal";
 import { Snapshot, SnapshotInput } from "../../model/Snapshot";
 import { Event, EventInput } from "../../model/Event";
 
-// import in-memory stores
+// Eventum connectors
+import { InMemoryConnector } from "./InMemoryConnector";
+import { JournalConnector } from "../JournalConnector";
+
+// Eventum in-memory stores
 import { InMemoryEventStore } from "./InMemoryEventStore";
 import { InMemorySnapshotStore } from "./InMemorySnapshotStore";
+import { AggregateId } from "../../model/Common";
 
 /**
  * In-memory Journal connector for testing purposes.
  */
 export class InMemoryJournalConnector extends InMemoryConnector implements JournalConnector {
-  public saveSnapshot(snapshot: SnapshotInput): Promise<void> {
+  public saveSnapshot(snapshotInput: SnapshotInput): Promise<void> {
+    const snapshot: Snapshot = {
+      snapshotId: UUID.v4(),
+      ...snapshotInput
+    };
+
     InMemorySnapshotStore.putSnapshot(snapshot);
     return Promise.resolve();
   }
 
-  public getJournal(aggregateId: any): Promise<Nullable<Journal>> {
-    const snapshot = InMemorySnapshotStore.getLatestSnapshot(aggregateId);
-    const events = InMemoryEventStore.getEvents(aggregateId, snapshot ? snapshot.sequence + 1 : 1);
+  public getJournal(aggregateId: AggregateId): Promise<Option<Journal>> {
+    const snapshotOpt = InMemorySnapshotStore.getLatestSnapshot(aggregateId);
+    const fromSequence = snapshotOpt.foldL(() => 1, (s) => s.sequence + 1);
+    const events = InMemoryEventStore.getEvents(aggregateId, fromSequence);
 
     // if there is an snapshot or at least one event, return a valid Journal
-    if (snapshot || events.length > 0) {
-      return Promise.resolve({
+    if (snapshotOpt.isSome() || events.length > 0) {
+      const snapshot = snapshotOpt.fold(undefined, (s) => s);
+
+      const journal: Journal = {
         aggregateId,
         snapshot,
         events
-      });
-    }
+      };
 
-    return Promise.resolve(null);
+      return Promise.resolve(some(journal));
+    } else {
+      return Promise.resolve(none);
+    }
   }
 
   public saveEvents(eventInputs: EventInput[]): Promise<Event[]> {
@@ -45,6 +60,7 @@ export class InMemoryJournalConnector extends InMemoryConnector implements Journ
       }, 0);
 
       return {
+        eventId: UUID.v4(),
         occurredAt: new Date().toISOString(),
         sequence: lastSequence + 1,
         ...eventInput
