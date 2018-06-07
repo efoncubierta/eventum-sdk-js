@@ -11,6 +11,7 @@ export { AggregateConfig } from "./aggregate/AggregateConfig";
 export { Materializer } from "./materializer/Materializer";
 
 // model
+export { AggregateId, Sequence } from "./model/Common";
 export { EventId, EventKey, EventPayload, EventInput, Event } from "./model/Event";
 export { JournalKey, Journal } from "./model/Journal";
 export { SnapshotId, SnapshotKey, SnapshotPayload, Snapshot } from "./model/Snapshot";

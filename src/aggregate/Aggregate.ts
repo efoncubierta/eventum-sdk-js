@@ -41,14 +41,6 @@ export abstract class Aggregate<T> {
 
   protected abstract aggregateSnapshot(snapshot: Snapshot): void;
 
-  protected getLastSequence() {
-    return this.lastSequence;
-  }
-
-  protected getNextSequence() {
-    return ++this.lastSequence;
-  }
-
   private aggregateEventInternal(event: Event) {
     this.lastSequence = event.sequence;
     this.aggregateEvent(event);

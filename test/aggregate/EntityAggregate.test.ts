@@ -74,6 +74,7 @@ function entityAggregateTests() {
     });
 
     it("should rehydrate from data store", () => {
+      const numberOfUpdates = 5;
       const uuid = TestDataGenerator.randomUUID();
       const firstEntity = TestDataGenerator.randomEntity(uuid);
       const secondEntity = TestDataGenerator.randomEntity(uuid);
@@ -84,6 +85,21 @@ function entityAggregateTests() {
           .then((currentEntity) => {
             chai.should().exist(currentEntity);
 
+            // update entity N times
+            const promises = Array<Promise<Entity>>();
+            for (let i = 0; i < numberOfUpdates; i++) {
+              promises.push(
+                entityAggregate.update(firstEntity.property1, firstEntity.property2, firstEntity.property3)
+              );
+            }
+
+            return Promise.all(promises);
+          })
+          .then((entities) => {
+            chai.should().exist(entities);
+            entities.length.should.equal(numberOfUpdates);
+
+            // last update with different data
             return entityAggregate.update(secondEntity.property1, secondEntity.property2, secondEntity.property3);
           })
           .then((currentEntity) => {
