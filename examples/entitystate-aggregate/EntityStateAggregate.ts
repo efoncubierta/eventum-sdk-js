@@ -1,8 +1,8 @@
 // Eventum SDK dependencies
-import { Aggregate, AggregateConfig, Snapshot, Event, State } from "../../src";
+import { Aggregate, AggregateConfig, Snapshot, Event, State, EventInput } from "../../src";
 
 import { Entity } from "../entity-aggregate/Entity";
-import { EntityEventType, EntityCreatedPayload, EntityUpdatedPayload } from "../entity-aggregate/EntityEventType";
+import { EntityEventType, EntityCreatedPayload, EntityUpdatedPayload } from "../entity-aggregate/EntityEvent";
 import { EntityStateName } from "../entitystate-aggregate/EntityStateName";
 
 type EntityState = State<Entity>;
@@ -42,16 +42,19 @@ export class EntityStateAggregate extends Aggregate<EntityState> implements IEnt
   public create(property1: string, property2: string, property3: number): Promise<EntityState> {
     switch (this.currentState.stateName) {
       case EntityStateName.New:
-        const payload: EntityCreatedPayload = {
+        const entityEventPayload: EntityCreatedPayload = {
           property1,
           property2,
           property3
         };
-        return this.emit({
-          eventType: EntityEventType.EntityCreated,
+        const entityEvent: EventInput = {
           aggregateId: this.aggregateId,
-          payload
-        });
+          source: "eventum",
+          authority: "eventum",
+          eventType: EntityEventType.EntityCreated,
+          payload: entityEventPayload
+        };
+        return this.emit(entityEvent);
       default:
         return Promise.reject(new Error(`Entity ${this.aggregateId} already exists.`));
     }
@@ -60,28 +63,37 @@ export class EntityStateAggregate extends Aggregate<EntityState> implements IEnt
   public update(property1: string, property2: string, property3: number): Promise<EntityState> {
     switch (this.currentState.stateName) {
       case EntityStateName.Active:
-        const payload: EntityUpdatedPayload = {
+        const entityEventPayload: EntityUpdatedPayload = {
           property1,
           property2,
           property3
         };
-        return this.emit({
-          eventType: EntityEventType.EntityUpdated,
+
+        const entityEvent: EventInput = {
           aggregateId: this.aggregateId,
-          payload
-        });
+          source: "eventum",
+          authority: "eventum",
+          eventType: EntityEventType.EntityUpdated,
+          payload: entityEventPayload
+        };
+
+        return this.emit(entityEvent);
       default:
-        return Promise.reject(new Error(`Can't change the email on a non-existent or deleted node.`));
+        return Promise.reject(new Error(`Entity ${this.aggregateId} does not exist or has been deleted.`));
     }
   }
 
   public delete(): Promise<EntityState> {
     switch (this.currentState.stateName) {
       case EntityStateName.Active:
-        return this.emit({
-          eventType: EntityEventType.EntityDeleted,
-          aggregateId: this.aggregateId
-        });
+        const entityEvent: EventInput = {
+          aggregateId: this.aggregateId,
+          source: "eventum",
+          authority: "eventum",
+          eventType: EntityEventType.EntityDeleted
+        };
+
+        return this.emit(entityEvent);
       default:
         return Promise.reject(new Error(`Entity ${this.aggregateId} doesn't exist and cannot be deleted`));
     }

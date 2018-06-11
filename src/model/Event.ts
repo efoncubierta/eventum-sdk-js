@@ -13,6 +13,8 @@ export type EventPayload = any;
 export interface Event {
   readonly eventId: EventId;
   readonly eventType: EventType;
+  readonly source: string;
+  readonly authority: string;
   readonly aggregateId: AggregateId;
   readonly sequence: Sequence;
   readonly occurredAt: string;
@@ -21,4 +23,4 @@ export interface Event {
 
 export type EventKey = Pick<Event, "aggregateId" | "sequence">;
 
-export type EventInput = Pick<Event, "eventType" | "aggregateId" | "payload">;
+export type EventInput = Pick<Event, "eventType" | "source" | "authority" | "aggregateId" | "payload">;
