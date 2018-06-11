@@ -2,7 +2,7 @@ import * as faker from "faker";
 
 import { Entity } from "../../examples/entity-aggregate/Entity";
 import { AggregateConfig, Event, Snapshot, EventInput, EventKey, SnapshotId, SnapshotKey } from "../../src";
-import { EntityCreatedPayload, EntityUpdatedPayload } from "../../examples/entity-aggregate/EntityEventType";
+import { EntityCreatedPayload, EntityUpdatedPayload } from "../../examples/entity-aggregate/EntityEvent";
 import { SnapshotInput } from "../../src/model/Snapshot";
 
 export class TestDataGenerator {
